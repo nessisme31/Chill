@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { COUNTRIES, flagEmoji, crewDisplay } from '../lib/countries'
 
 export default function InscriptionTab({ battle, crews, setCrews }) {
-  const [form,    setForm]    = useState({ name: '', m1: '', m2: '', email: '' })
+  const [form,    setForm]    = useState({ name: '', m1: '', m2: '', email: '', country_code: 'FR' })
   const [pending, setPending] = useState(null)
   const [saving,  setSaving]  = useState(false)
 
   const crewsA = crews.filter(c => c.cypher === 'A')
   const crewsB = crews.filter(c => c.cypher === 'B')
-
   const f = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
   useEffect(() => {
     if (!pending) return
-    const handle = (e) => { if (e.key === 'Enter' && !saving) confirm() }
+    const handle = (e) => { if (e.key === 'Enter' && !saving) confirmInscription() }
     window.addEventListener('keydown', handle)
     return () => window.removeEventListener('keydown', handle)
   }, [pending, saving])
@@ -27,31 +27,32 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
     setPending({ ...form, cypher, sticker: cypher + num })
   }
 
-  const confirm = async () => {
+  const confirmInscription = async () => {
     if (!pending || saving) return
     setSaving(true)
     const { data, error } = await supabase.from('crews').insert({
-      battle_id: battle.id,
-      name:    pending.name.trim(),
-      member1: pending.m1.trim(),
-      member2: pending.m2.trim(),
-      email:   pending.email.trim() || null,
-      cypher:  pending.cypher,
-      sticker: pending.sticker,
+      battle_id:    battle.id,
+      name:         pending.name.trim(),
+      member1:      pending.m1.trim(),
+      member2:      pending.m2.trim(),
+      email:        pending.email.trim() || null,
+      country_code: pending.country_code || 'FR',
+      cypher:       pending.cypher,
+      sticker:      pending.sticker,
     }).select().single()
-
     if (error) { alert('Erreur : ' + error.message); setSaving(false); return }
     setCrews(prev => [...prev, data])
-    setForm({ name: '', m1: '', m2: '', email: '' })
+    setForm({ name: '', m1: '', m2: '', email: '', country_code: 'FR' })
     setPending(null)
     setSaving(false)
   }
 
   if (pending) {
+    const flag = flagEmoji(pending.country_code)
     return (
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <div className="card" style={{
-          maxWidth: 400, width: '100%', textAlign: 'center',
+          maxWidth: 420, width: '100%', textAlign: 'center',
           border: `2px solid ${pending.cypher === 'A' ? 'var(--red)' : 'var(--border2)'}`,
           padding: '36px 24px',
         }}>
@@ -59,13 +60,15 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
           <div style={{ fontSize: 96, fontWeight: 900, lineHeight: 1, color: pending.cypher === 'A' ? 'var(--red)' : 'var(--text)', marginBottom: 20 }}>
             {pending.sticker}
           </div>
-          <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{pending.name}</div>
+          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {pending.name} {flag}
+          </div>
           <div className="muted" style={{ marginBottom: 4, textTransform: 'lowercase' }}>{pending.m1} &amp; {pending.m2}</div>
           {pending.email && <div className="caption" style={{ marginBottom: 4 }}>{pending.email}</div>}
-          <div className="caption" style={{ marginBottom: 28, color: 'var(--text3)' }}>↵ Entrée ou cliquer pour confirmer</div>
+          <div className="caption" style={{ marginBottom: 28, color: 'var(--text3)' }}>Entrée ou cliquer pour confirmer</div>
           <div className="flex-center" style={{ gap: 10 }}>
             <button className="btn btn-ghost" onClick={() => setPending(null)}>← Modifier</button>
-            <button className="btn btn-white" onClick={confirm} disabled={saving}>{saving ? '…' : '✓ Confirmer'}</button>
+            <button className="btn btn-white" onClick={confirmInscription} disabled={saving}>{saving ? '…' : '✓ Confirmer'}</button>
           </div>
         </div>
       </div>
@@ -89,9 +92,17 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
             <div className="label">Membre 2</div>
             <input className="input" value={form.m2} onChange={e => f('m2', e.target.value)} placeholder="prénom nom" />
           </div>
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 12 }}>
             <div className="label">Email <span style={{ color: 'var(--text3)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optionnel)</span></div>
             <input className="input" type="email" value={form.email} onChange={e => f('email', e.target.value)} placeholder="crew@exemple.com" />
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <div className="label">Pays</div>
+            <select className="input" value={form.country_code} onChange={e => f('country_code', e.target.value)}>
+              {COUNTRIES.map(c => (
+                <option key={c.code} value={c.code}>{flagEmoji(c.code)} {c.name}</option>
+              ))}
+            </select>
           </div>
           <div className="label" style={{ marginBottom: 8 }}>Choisir le cypher</div>
           <div className="grid2" style={{ gap: 8 }}>
@@ -118,12 +129,11 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
               <div key={c.id} className="flex" style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                 <span className="sticker-a">{c.sticker}</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.name}</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{crewDisplay(c)}</div>
                   <div className="caption" style={{ textTransform: 'lowercase' }}>{c.member1} &amp; {c.member2}</div>
                 </div>
               </div>
-            ))
-          }
+            ))}
         </div>
         <div className="card" style={{ border: '1px solid var(--border2)' }}>
           <div className="flex-between" style={{ marginBottom: 12 }}>
@@ -135,12 +145,11 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
               <div key={c.id} className="flex" style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                 <span className="sticker-b">{c.sticker}</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.name}</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{crewDisplay(c)}</div>
                   <div className="caption" style={{ textTransform: 'lowercase' }}>{c.member1} &amp; {c.member2}</div>
                 </div>
               </div>
-            ))
-          }
+            ))}
         </div>
       </div>
     </div>
