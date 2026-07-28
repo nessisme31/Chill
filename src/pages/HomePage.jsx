@@ -5,9 +5,7 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
   const [battles, setBattles] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadBattles()
-  }, [])
+  useEffect(() => { loadBattles() }, [])
 
   const loadBattles = async () => {
     setLoading(true)
@@ -25,9 +23,11 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
     return { dot: 'dot-done', label: 'Terminé' }
   }
 
+  const activeBattles    = battles.filter(b => b.status !== 'completed')
+  const completedBattles = battles.filter(b => b.status === 'completed')
+
   return (
     <div className="page">
-      {/* Header */}
       <div className="flex-between" style={{ marginBottom: 32 }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 6 }}>
@@ -40,7 +40,6 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
         </button>
       </div>
 
-      {/* Battles list */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)' }}>Chargement…</div>
       ) : battles.length === 0 ? (
@@ -52,11 +51,10 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
         </div>
       ) : (
         <div>
-          {/* Active / Paused */}
-          {battles.filter(b => b.status !== 'completed').length > 0 && (
-            <div style={{ marginBottom: 24 }}>
+          {activeBattles.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
               <div className="label" style={{ marginBottom: 12 }}>Battles actifs</div>
-              {battles.filter(b => b.status !== 'completed').map(b => {
+              {activeBattles.map(b => {
                 const st = statusLabel(b.status)
                 return (
                   <div
@@ -76,14 +74,12 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
                         <div className="flex" style={{ gap: 16 }}>
                           {b.date && <span className="muted">📅 {new Date(b.date).toLocaleDateString('fr-FR')}</span>}
                           {b.venue && <span className="muted">📍 {b.venue}</span>}
-                          <span className="muted">Statut : {st.label}</span>
+                          <span className="muted">{st.label}</span>
                         </div>
                       </div>
-                      <div className="flex" style={{ gap: 8 }}>
-                        <span style={{ color: 'var(--text3)', fontSize: 12 }}>
-                          {b.status === 'paused' ? 'Reprendre →' : 'Ouvrir →'}
-                        </span>
-                      </div>
+                      <span style={{ color: 'var(--text3)', fontSize: 12 }}>
+                        {b.status === 'paused' ? 'Reprendre →' : 'Ouvrir →'}
+                      </span>
                     </div>
                   </div>
                 )
@@ -91,28 +87,35 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
             </div>
           )}
 
-          {/* Completed */}
-          {battles.filter(b => b.status === 'completed').length > 0 && (
+          {completedBattles.length > 0 && (
             <div>
               <div className="label" style={{ marginBottom: 12 }}>Archives</div>
-              {battles.filter(b => b.status === 'completed').map(b => (
+              {completedBattles.map(b => (
                 <div
                   key={b.id}
                   className="card"
-                  style={{ cursor: 'pointer', opacity: 0.6 }}
+                  style={{ cursor: 'pointer', transition: 'border-color .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#333'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
                   onClick={() => onOpenBattle(b)}
                 >
                   <div className="flex-between">
                     <div>
-                      <div className="flex" style={{ marginBottom: 4 }}>
+                      <div className="flex" style={{ marginBottom: 6 }}>
                         <span className="dot-done"></span>
-                        <span style={{ fontWeight: 600 }}>{b.name}</span>
+                        <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text2)' }}>{b.name}</span>
                       </div>
-                      <div className="flex" style={{ gap: 16 }}>
+                      <div className="flex" style={{ gap: 16, marginBottom: b.champion_name ? 8 : 0 }}>
                         {b.date && <span className="muted">📅 {new Date(b.date).toLocaleDateString('fr-FR')}</span>}
                         {b.venue && <span className="muted">📍 {b.venue}</span>}
-                        <span className="muted">Terminé</span>
+                        <span className="muted">Clôturé</span>
                       </div>
+                      {b.champion_name && (
+                        <div className="flex" style={{ gap: 6, marginTop: 4 }}>
+                          <span style={{ fontSize: 13 }}>🏆</span>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--gold)' }}>{b.champion_name}</span>
+                        </div>
+                      )}
                     </div>
                     <span style={{ color: 'var(--text3)', fontSize: 12 }}>Consulter →</span>
                   </div>
