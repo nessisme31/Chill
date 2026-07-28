@@ -10,17 +10,13 @@ const ROUNDS = [
 
 const emptyBracket = () => {
   const b = {}
-  ROUNDS.forEach(r => {
-    b[r.id] = {}
-    for (let m = 1; m <= r.matches; m++) {
-      b[r.id][m] = { team1: null, team2: null, winner: null }
-    }
-  })
+  ROUNDS.forEach(r => { b[r.id] = {}; for (let m = 1; m <= r.matches; m++) b[r.id][m] = { team1: null, team2: null, winner: null } })
   return b
 }
 
 export default function BracketTab({ battle, crews }) {
   const [validated, setValidated] = useState(false)
+  const [locked,    setLocked]    = useState(false)
   const [top16,     setTop16]     = useState([])
   const [bracket,   setBracket]   = useState(emptyBracket())
   const [selecting, setSelecting] = useState(null)
@@ -30,23 +26,19 @@ export default function BracketTab({ battle, crews }) {
 
   const loadData = async () => {
     setLoading(true)
-    const { data: bData } = await supabase.from('battles').select('top16_validated').eq('id', battle.id).single()
+    const { data: bData } = await supabase.from('battles').select('top16_validated, bracket_locked').eq('id', battle.id).single()
     if (!bData?.top16_validated) { setLoading(false); return }
     setValidated(true)
+    if (bData?.bracket_locked) setLocked(true)
 
     const [{ data: scores }, { data: guests }] = await Promise.all([
       supabase.from('top16_scores').select('crew_id, score').eq('battle_id', battle.id),
       supabase.from('top16_guests').select('*').eq('battle_id', battle.id).order('position'),
     ])
-
     const totals = {}
     ;(scores || []).forEach(s => { totals[s.crew_id] = (totals[s.crew_id] || 0) + (s.score || 0) })
-    const crewsRanked = crews
-      .map(c => ({ ...c, total: totals[c.id] || 0, isGuest: false }))
-      .sort((a, b) => b.total - a.total)
-    const guestEntries = (guests || []).map(g => ({
-      id: 'g_' + g.id, name: g.name, isGuest: true, cypher: null, sticker: null,
-    }))
+    const crewsRanked = crews.map(c => ({ ...c, total: totals[c.id] || 0, isGuest: false })).sort((a, b) => b.total - a.total)
+    const guestEntries = (guests || []).map(g => ({ id: 'g_' + g.id, name: g.name, isGuest: true, cypher: null, sticker: null }))
     setTop16([...guestEntries, ...crewsRanked].slice(0, 16))
 
     const { data: slots } = await supabase.from('bracket_slots').select('*').eq('battle_id', battle.id)
@@ -55,8 +47,7 @@ export default function BracketTab({ battle, crews }) {
       slots.forEach(s => {
         if (!newB[s.round]?.[s.match_number]) return
         const slot = s.position === 1 ? 'team1' : 'team2'
-        const teamObj = { id: s.crew_id || ('g_' + s.id), name: s.team_name, sticker: s.sticker, cypher: s.cypher, isGuest: s.is_guest }
-        newB[s.round][s.match_number][slot] = teamObj
+        newB[s.round][s.match_number][slot] = { id: s.crew_id || ('g_' + s.id), name: s.team_name, sticker: s.sticker, cypher: s.cypher, isGuest: s.is_guest }
         if (s.is_winner) newB[s.round][s.match_number].winner = slot
       })
       setBracket(newB)
@@ -65,19 +56,25 @@ export default function BracketTab({ battle, crews }) {
   }
 
   const placeTeam = async (team) => {
-    if (!selecting) return
+    if (!selecting || locked) return
     const { round, match, slot } = selecting
     const newB = JSON.parse(JSON.stringify(bracket))
     newB[round][match][slot] = team
-    setBracket(newB)
-    setSelecting(null)
+    setBracket(newB); setSelecting(null)
     await supabase.from('bracket_slots').upsert({
-      battle_id: battle.id, round, match_number: match,
-      position: slot === 'team1' ? 1 : 2,
-      crew_id: team.isGuest ? null : team.id,
-      team_name: team.name, sticker: team.sticker || null,
+      battle_id: battle.id, round, match_number: match, position: slot === 'team1' ? 1 : 2,
+      crew_id: team.isGuest ? null : team.id, team_name: team.name, sticker: team.sticker || null,
       cypher: team.cypher || null, is_guest: team.isGuest || false, is_winner: false,
     }, { onConflict: 'battle_id,round,match_number,position' })
+  }
+
+  const removeFromSlot = async (match, slot) => {
+    if (locked) return
+    const newB = JSON.parse(JSON.stringify(bracket))
+    newB[1][match][slot] = null
+    setBracket(newB)
+    await supabase.from('bracket_slots').delete()
+      .eq('battle_id', battle.id).eq('round', 1).eq('match_number', match).eq('position', slot === 'team1' ? 1 : 2)
   }
 
   const declareWinner = async (round, match, slot) => {
@@ -87,22 +84,17 @@ export default function BracketTab({ battle, crews }) {
     const newB = JSON.parse(JSON.stringify(bracket))
     newB[round][match].winner = slot
     if (round < 4) {
-      const nextRound = round + 1
-      const nextMatch = Math.ceil(match / 2)
-      const nextSlot  = match % 2 === 1 ? 'team1' : 'team2'
+      const nextRound = round + 1; const nextMatch = Math.ceil(match / 2); const nextSlot = match % 2 === 1 ? 'team1' : 'team2'
       newB[nextRound][nextMatch][nextSlot] = winner
       await supabase.from('bracket_slots').upsert({
-        battle_id: battle.id, round: nextRound, match_number: nextMatch,
-        position: nextSlot === 'team1' ? 1 : 2,
-        crew_id: winner.isGuest ? null : winner.id,
-        team_name: winner.name, sticker: winner.sticker || null,
+        battle_id: battle.id, round: nextRound, match_number: nextMatch, position: nextSlot === 'team1' ? 1 : 2,
+        crew_id: winner.isGuest ? null : winner.id, team_name: winner.name, sticker: winner.sticker || null,
         cypher: winner.cypher || null, is_guest: winner.isGuest || false, is_winner: false,
       }, { onConflict: 'battle_id,round,match_number,position' })
     }
     setBracket(newB)
     await supabase.from('bracket_slots').update({ is_winner: true })
-      .eq('battle_id', battle.id).eq('round', round).eq('match_number', match)
-      .eq('position', slot === 'team1' ? 1 : 2)
+      .eq('battle_id', battle.id).eq('round', round).eq('match_number', match).eq('position', slot === 'team1' ? 1 : 2)
   }
 
   const undoWinner = async (round, match) => {
@@ -112,36 +104,31 @@ export default function BracketTab({ battle, crews }) {
     const newB = JSON.parse(JSON.stringify(bracket))
     newB[round][match].winner = null
     if (round < 4) {
-      const nextRound = round + 1
-      const nextMatch = Math.ceil(match / 2)
-      const nextSlot  = match % 2 === 1 ? 'team1' : 'team2'
+      const nextRound = round + 1; const nextMatch = Math.ceil(match / 2); const nextSlot = match % 2 === 1 ? 'team1' : 'team2'
       const nextM = newB[nextRound][nextMatch]
       if (nextM.winner && nextM[nextM.winner]?.id === winner?.id) {
         newB[nextRound][nextMatch].winner = null
         if (nextRound < 4) {
-          const nr2 = nextRound + 1
-          const nm2 = Math.ceil(nextMatch / 2)
-          const ns2 = nextMatch % 2 === 1 ? 'team1' : 'team2'
+          const nr2 = nextRound + 1; const nm2 = Math.ceil(nextMatch / 2); const ns2 = nextMatch % 2 === 1 ? 'team1' : 'team2'
           newB[nr2][nm2][ns2] = null
-          await supabase.from('bracket_slots').delete()
-            .eq('battle_id', battle.id).eq('round', nr2).eq('match_number', nm2).eq('position', ns2 === 'team1' ? 1 : 2)
-          await supabase.from('bracket_slots').update({ is_winner: false })
-            .eq('battle_id', battle.id).eq('round', nextRound).eq('match_number', nextMatch)
+          await supabase.from('bracket_slots').delete().eq('battle_id', battle.id).eq('round', nr2).eq('match_number', nm2).eq('position', ns2 === 'team1' ? 1 : 2)
+          await supabase.from('bracket_slots').update({ is_winner: false }).eq('battle_id', battle.id).eq('round', nextRound).eq('match_number', nextMatch)
         }
       }
       newB[nextRound][nextMatch][nextSlot] = null
-      await supabase.from('bracket_slots').delete()
-        .eq('battle_id', battle.id).eq('round', nextRound).eq('match_number', nextMatch).eq('position', nextSlot === 'team1' ? 1 : 2)
+      await supabase.from('bracket_slots').delete().eq('battle_id', battle.id).eq('round', nextRound).eq('match_number', nextMatch).eq('position', nextSlot === 'team1' ? 1 : 2)
     }
-    await supabase.from('bracket_slots').update({ is_winner: false })
-      .eq('battle_id', battle.id).eq('round', round).eq('match_number', match)
+    await supabase.from('bracket_slots').update({ is_winner: false }).eq('battle_id', battle.id).eq('round', round).eq('match_number', match)
     setBracket(newB)
   }
 
-  const unplaced = top16.filter(t => {
-    const r1 = bracket[1]
-    return !Object.values(r1).some(m => m.team1?.id === t.id || m.team2?.id === t.id)
-  })
+  const lockBracket = async () => {
+    await supabase.from('battles').update({ bracket_locked: true }).eq('id', battle.id)
+    setLocked(true)
+  }
+
+  const allPlaced = Object.values(bracket[1]).every(m => m.team1 && m.team2)
+  const unplaced  = top16.filter(t => !Object.values(bracket[1]).some(m => m.team1?.id === t.id || m.team2?.id === t.id))
 
   if (loading) return <div className="caption" style={{ padding: 24 }}>Chargement…</div>
 
@@ -163,17 +150,28 @@ export default function BracketTab({ battle, crews }) {
       {champion && (
         <div style={{ background: 'linear-gradient(135deg, #2d1800, #1a1200)', border: '1px solid var(--gold)', borderRadius: 10, padding: '20px 24px', marginBottom: 20, textAlign: 'center' }}>
           <div style={{ fontSize: 11, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 6 }}>Champion</div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--gold)' }}>🏆 {champion.name}</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--gold)', textTransform: 'uppercase' }}>🏆 {champion.name}</div>
           {champion.sticker && <div style={{ color: 'var(--gold)', opacity: .7, marginTop: 4 }}>{champion.sticker}</div>}
         </div>
+      )}
+
+      {!locked && allPlaced && (
+        <div className="alert-ok" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>✓ Les 16 équipes sont placées — prêt à lancer !</span>
+          <button className="btn btn-white btn-sm" onClick={lockBracket} style={{ marginLeft: 16, whiteSpace: 'nowrap' }}>🚀 Lancer le battle</button>
+        </div>
+      )}
+      {locked && !champion && (
+        <div className="alert-info" style={{ marginBottom: 16 }}>🔒 Bracket lancé — cliquez sur une équipe pour déclarer le gagnant.</div>
+      )}
+      {!locked && !allPlaced && (
+        <div className="alert-info" style={{ marginBottom: 16 }}>{unplaced.length} équipe(s) restante(s) à placer — cliquez sur les slots "+" pour les positionner.</div>
       )}
 
       <div style={{ display: 'flex', gap: 0, overflowX: 'auto', alignItems: 'flex-start', paddingBottom: 16 }}>
         {ROUNDS.map(r => (
           <div key={r.id} style={{ minWidth: 210, flex: '0 0 210px' }}>
-            <div style={{ textAlign: 'center', padding: '8px 12px', fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>
-              {r.label}
-            </div>
+            <div style={{ textAlign: 'center', padding: '8px 12px', fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>{r.label}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: r.id === 1 ? 8 : r.id === 2 ? 40 : r.id === 3 ? 96 : 208, padding: '0 6px' }}>
               {Array.from({ length: r.matches }, (_, i) => i + 1).map(match => {
                 const m = bracket[r.id][match]
@@ -181,19 +179,21 @@ export default function BracketTab({ battle, crews }) {
                 return (
                   <div key={match} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
                     <TeamSlot team={m.team1} isWinner={m.winner === 'team1'} isLoser={m.winner === 'team2'}
-                      canPlace={isR1 && !m.team1} canDeclare={!m.winner && !!m.team1 && !!m.team2}
+                      canPlace={isR1 && !m.team1 && !locked} canRemove={isR1 && !!m.team1 && !m.winner && !locked}
+                      canDeclare={locked && !m.winner && !!m.team1 && !!m.team2}
                       onPlace={() => setSelecting({ round: r.id, match, slot: 'team1' })}
+                      onRemove={() => removeFromSlot(match, 'team1')}
                       onDeclare={() => declareWinner(r.id, match, 'team1')} />
                     <div style={{ height: 1, background: 'var(--border)' }} />
                     <TeamSlot team={m.team2} isWinner={m.winner === 'team2'} isLoser={m.winner === 'team1'}
-                      canPlace={isR1 && !m.team2} canDeclare={!m.winner && !!m.team1 && !!m.team2}
+                      canPlace={isR1 && !m.team2 && !locked} canRemove={isR1 && !!m.team2 && !m.winner && !locked}
+                      canDeclare={locked && !m.winner && !!m.team1 && !!m.team2}
                       onPlace={() => setSelecting({ round: r.id, match, slot: 'team2' })}
+                      onRemove={() => removeFromSlot(match, 'team2')}
                       onDeclare={() => declareWinner(r.id, match, 'team2')} />
                     {m.winner && (
                       <div style={{ borderTop: '1px solid var(--border)', padding: '4px 8px', textAlign: 'right' }}>
-                        <button className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '3px 8px', color: 'var(--red)', borderColor: 'var(--red-dim)' }} onClick={() => undoWinner(r.id, match)}>
-                          ↩ Annuler
-                        </button>
+                        <button className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '3px 8px', color: 'var(--red)', borderColor: 'var(--red-dim)' }} onClick={() => undoWinner(r.id, match)}>↩ Annuler</button>
                       </div>
                     )}
                   </div>
@@ -211,16 +211,15 @@ export default function BracketTab({ battle, crews }) {
               <div className="title-sm">Choisir une équipe</div>
               <button className="btn btn-ghost btn-sm" onClick={() => setSelecting(null)}>✕</button>
             </div>
-            {unplaced.length === 0
-              ? <div className="caption">Toutes les équipes qualifiées sont déjà placées.</div>
+            {unplaced.length === 0 ? <div className="caption">Toutes les équipes qualifiées sont déjà placées.</div>
               : unplaced.map(t => (
-                  <div key={t.id} className="flex" style={{ padding: '10px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => placeTeam(t)}>
-                    {t.sticker && <span className={t.cypher === 'A' ? 'sticker-a' : 'sticker-b'}>{t.sticker}</span>}
-                    {t.isGuest && <span style={{ color: 'var(--gold)', fontSize: 15 }}>⭐</span>}
-                    <span style={{ fontWeight: 600, color: t.isGuest ? 'var(--gold)' : 'var(--text)' }}>{t.name}</span>
-                    {t.isGuest && <span className="badge-gold" style={{ marginLeft: 4 }}>GUEST</span>}
-                  </div>
-                ))
+                <div key={t.id} className="flex" style={{ padding: '10px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => placeTeam(t)}>
+                  {t.sticker && <span className={t.cypher === 'A' ? 'sticker-a' : 'sticker-b'}>{t.sticker}</span>}
+                  {t.isGuest && <span style={{ color: 'var(--gold)', fontSize: 15 }}>⭐</span>}
+                  <span style={{ fontWeight: 700, fontSize: 13, textTransform: t.isGuest ? 'none' : 'uppercase', color: t.isGuest ? 'var(--gold)' : 'var(--text)' }}>{t.name}</span>
+                  {t.isGuest && <span className="badge-gold" style={{ marginLeft: 4 }}>GUEST</span>}
+                </div>
+              ))
             }
           </div>
         </div>
@@ -229,20 +228,23 @@ export default function BracketTab({ battle, crews }) {
   )
 }
 
-function TeamSlot({ team, isWinner, isLoser, canPlace, canDeclare, onPlace, onDeclare }) {
-  const bg         = isWinner ? '#0d3b1e' : 'transparent'
-  const color      = isWinner ? '#fff' : isLoser ? 'var(--text3)' : team ? 'var(--text)' : 'var(--text3)'
-  const decoration = isLoser ? 'line-through' : 'none'
+function TeamSlot({ team, isWinner, isLoser, canPlace, canRemove, canDeclare, onPlace, onRemove, onDeclare }) {
+  const bg = isWinner ? '#0d3b1e' : 'transparent'
+  const color = isWinner ? '#fff' : isLoser ? 'var(--text3)' : team ? 'var(--text)' : 'var(--text3)'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: bg, minHeight: 40, cursor: (canPlace || canDeclare) ? 'pointer' : 'default' }}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', background: bg, minHeight: 40, cursor: (canPlace || canDeclare) ? 'pointer' : 'default' }}
       onClick={canDeclare ? onDeclare : canPlace ? onPlace : undefined}>
       {team?.sticker && <span style={{ fontSize: 11, fontWeight: 800, color: team.cypher === 'A' ? 'var(--red)' : 'var(--text2)', minWidth: 28 }}>{team.sticker}</span>}
       {team?.isGuest && <span style={{ fontSize: 12, color: isWinner ? '#ffd700' : 'var(--gold)' }}>⭐</span>}
-      <span style={{ flex: 1, fontSize: 12, fontWeight: team ? 600 : 400, color, textDecoration: decoration }}>
+      <span style={{ flex: 1, fontSize: 12, fontWeight: team ? 700 : 400, color, textDecoration: isLoser ? 'line-through' : 'none', textTransform: (team && !team.isGuest) ? 'uppercase' : 'none', letterSpacing: team ? '0.3px' : 0 }}>
         {team ? team.name : canPlace ? '+ Placer équipe' : '—'}
       </span>
       {isWinner && <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 700 }}>✓</span>}
       {canDeclare && <span style={{ fontSize: 10, color: 'var(--text3)', whiteSpace: 'nowrap' }}>tap = gagne</span>}
+      {canRemove && (
+        <button className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '2px 6px', color: 'var(--text3)', marginLeft: 4 }}
+          onClick={e => { e.stopPropagation(); onRemove() }}>✕</button>
+      )}
     </div>
   )
 }
