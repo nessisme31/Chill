@@ -1,4 +1,4 @@
-export default function StatsTab({ crews, judges, djs }) {
+export default function StatsTab({ crews, judges, djs, speakers }) {
   const cA   = crews.filter(c => c.cypher === 'A').length
   const cB   = crews.filter(c => c.cypher === 'B').length
   const diff = Math.abs(cA - cB)
@@ -25,39 +25,40 @@ export default function StatsTab({ crews, judges, djs }) {
       </div>
 
       {crews.length > 0 && diff > 3 && (
-        <div className="alert-warn">
-          ⚠️ <strong>Déséquilibre !</strong> Différence de {diff} équipes — orientez les prochaines inscriptions vers le Cypher {weaker}.
-        </div>
+        <div className="alert-warn">⚠️ <strong>Déséquilibre !</strong> Différence de {diff} équipes — orientez les inscriptions vers le Cypher {weaker}.</div>
       )}
       {crews.length > 0 && diff <= 3 && (
-        <div className="alert-ok">
-          ✓ Cyphers équilibrés — différence de {diff} équipe(s) seulement.
-        </div>
+        <div className="alert-ok">✓ Cyphers équilibrés — différence de {diff} équipe(s).</div>
       )}
       {crews.length === 0 && (
         <div className="caption" style={{ textAlign: 'center', padding: 20 }}>Aucune équipe inscrite pour l'instant.</div>
       )}
 
-      <div className="grid2">
+      <div className="grid3" style={{ marginTop: 16 }}>
         <div className="card card-sm">
           <div className="label" style={{ marginBottom: 10 }}>Juges ({judges.length})</div>
+          {judges.length === 0 && <div className="caption">Aucun juge</div>}
           {judges.map(j => (
             <div key={j.id} className="flex-between" style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
               <span style={{ fontSize: 13 }}>{j.name}</span>
-              {j.cypher && (
-                <span className={j.cypher === 'A' ? 'badge-a' : j.cypher === 'both' ? 'badge-score' : 'badge-b'}>
-                  {j.cypher === 'both' ? 'A & B' : `Cypher ${j.cypher}`}
-                </span>
-              )}
+              {j.cypher && <span className={j.cypher === 'A' ? 'badge-a' : 'badge-b'}>Cypher {j.cypher}</span>}
             </div>
           ))}
         </div>
+
         <div className="card card-sm">
           <div className="label" style={{ marginBottom: 10 }}>DJs ({djs.length})</div>
+          {djs.length === 0 && <div className="caption">Aucun DJ</div>}
           {djs.map(d => (
-            <div key={d.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-              {d.name}
-            </div>
+            <div key={d.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>{d.name}</div>
+          ))}
+        </div>
+
+        <div className="card card-sm">
+          <div className="label" style={{ marginBottom: 10 }}>Speakers ({(speakers || []).length})</div>
+          {(speakers || []).length === 0 && <div className="caption">Aucun speaker</div>}
+          {(speakers || []).map(s => (
+            <div key={s.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>{s.name}</div>
           ))}
         </div>
       </div>
