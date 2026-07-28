@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { crewDisplay } from '../lib/countries'
 
-export default function QualificationTab({ battle, judges, crews, setCrews }) {
+export default function QualificationTab({ battle, judges, djs, speakers, crews, setCrews }) {
   const [cypher,      setCypher]      = useState('A')
   const [assignments, setAssignments] = useState({})
   const [view,        setView]        = useState('list')
@@ -13,6 +13,10 @@ export default function QualificationTab({ battle, judges, crews, setCrews }) {
   const [deleting,    setDeleting]    = useState(false)
 
   const filtered = crews.filter(c => c.cypher === cypher)
+  const cA = crews.filter(c => c.cypher === 'A').length
+  const cB = crews.filter(c => c.cypher === 'B').length
+  const diff = Math.abs(cA - cB)
+  const weaker = cA < cB ? 'A' : 'B'
 
   useEffect(() => { loadAssignments() }, [battle.id])
 
@@ -31,6 +35,7 @@ export default function QualificationTab({ battle, judges, crews, setCrews }) {
   }
 
   const assignedJudges = judges.filter(j => assignments[j.id] === cypher)
+  const isAssigned = assignedJudges.length > 0
 
   // ── Édition
   const openEdit = (crew) => {
@@ -40,20 +45,13 @@ export default function QualificationTab({ battle, judges, crews, setCrews }) {
 
   const saveEdit = async () => {
     if (!editForm.name.trim() || !editForm.member1.trim() || !editForm.member2.trim()) {
-      alert('Nom du crew et membres obligatoires')
-      return
+      alert('Nom du crew et membres obligatoires'); return
     }
     setSaving(true)
-    const updates = {
-      name:    editForm.name.trim(),
-      member1: editForm.member1.trim(),
-      member2: editForm.member2.trim(),
-      email:   editForm.email.trim() || null,
-    }
+    const updates = { name: editForm.name.trim(), member1: editForm.member1.trim(), member2: editForm.member2.trim(), email: editForm.email.trim() || null }
     await supabase.from('crews').update(updates).eq('id', editing.id)
     setCrews(prev => prev.map(c => c.id === editing.id ? { ...c, ...updates } : c))
-    setEditing(null)
-    setSaving(false)
+    setEditing(null); setSaving(false)
   }
 
   // ── Suppression
@@ -62,8 +60,7 @@ export default function QualificationTab({ battle, judges, crews, setCrews }) {
     setDeleting(true)
     await supabase.from('crews').delete().eq('id', confirmDel.id)
     setCrews(prev => prev.filter(c => c.id !== confirmDel.id))
-    setConfirmDel(null)
-    setDeleting(false)
+    setConfirmDel(null); setDeleting(false)
   }
 
   // ── Export CSV
@@ -72,13 +69,13 @@ export default function QualificationTab({ battle, judges, crews, setCrews }) {
     crews.forEach(c => rows.push([c.member1 || '', c.member2 || '', c.name || '', c.email || '']))
     const csv = '\uFEFF' + rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
     a.href = url; a.download = `${battle.name.replace(/\s+/g, '_')}_danseurs.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 
-  // ── Impression feuille juges
+  // ── Impression feuille juges (inchangée)
   const print = () => {
     const rows = filtered.map(c => `<tr>
       <td style="font-weight:800;color:${cypher === 'A' ? '#c0392b' : '#555'};width:60px">${c.sticker}</td>
@@ -103,7 +100,7 @@ export default function QualificationTab({ battle, judges, crews, setCrews }) {
 
   return (
     <div>
-      {/* Modale édition */}
+      {/* ── Modales ── */}
       {editing && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
           <div className="card" style={{ maxWidth: 440, width: '100%', padding: '28px' }}>
@@ -141,7 +138,6 @@ export default function QualificationTab({ battle, judges, crews, setCrews }) {
         </div>
       )}
 
-      {/* Modale suppression */}
       {confirmDel && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
           <div className="card" style={{ maxWidth: 380, width: '100%', textAlign: 'center', padding: '36px 28px' }}>
@@ -149,9 +145,7 @@ export default function QualificationTab({ battle, judges, crews, setCrews }) {
             <div className="title-sm" style={{ marginBottom: 8 }}>Supprimer cette équipe ?</div>
             <div style={{ fontWeight: 700, fontSize: 15, textTransform: 'uppercase', marginBottom: 4 }}>{confirmDel.sticker} — {crewDisplay(confirmDel)}</div>
             <div className="muted" style={{ marginBottom: 8, textTransform: 'lowercase' }}>{confirmDel.member1} &amp; {confirmDel.member2}</div>
-            <div className="alert-warn" style={{ marginBottom: 20, textAlign: 'left' }}>
-              Action irréversible. Les scores associés seront aussi supprimés.
-            </div>
+            <div className="alert-warn" style={{ marginBottom: 20, textAlign: 'left' }}>Action irréversible. Les scores associés seront aussi supprimés.</div>
             <div className="flex-center" style={{ gap: 10 }}>
               <button className="btn btn-ghost" onClick={() => setConfirmDel(null)}>Annuler</button>
               <button className="btn btn-red" style={{ padding: '8px 20px' }} onClick={deleteCrew} disabled={deleting}>
@@ -162,30 +156,106 @@ export default function QualificationTab({ battle, judges, crews, setCrews }) {
         </div>
       )}
 
-      {/* Toolbar */}
-      <div className="flex-between" style={{ marginBottom: 16 }}>
-        <div className="flex" style={{ gap: 8 }}>
+      {/* ══════════════════════════════════════
+          BARRE DE BOUTONS — toujours en haut
+      ══════════════════════════════════════ */}
+      <div className="flex-between" style={{ marginBottom: 20 }}>
+
+        {/* Sélecteur cypher + bouton Assigner (mis en valeur) */}
+        <div className="flex" style={{ gap: 10, alignItems: 'center' }}>
           <button className="btn btn-sm" style={{ background: cypher === 'A' ? 'var(--red-dim)' : 'var(--surface2)', color: cypher === 'A' ? 'var(--red)' : 'var(--text2)', border: `1px solid ${cypher === 'A' ? 'var(--red-dim)' : 'var(--border2)'}` }} onClick={() => setCypher('A')}>Cypher A</button>
           <button className="btn btn-sm" style={{ background: cypher === 'B' ? 'var(--surface)' : 'var(--surface2)', color: cypher === 'B' ? 'var(--text)' : 'var(--text2)', border: `1px solid ${cypher === 'B' ? 'var(--border)' : 'var(--border2)'}` }} onClick={() => setCypher('B')}>Cypher B</button>
-        </div>
-        <div className="flex" style={{ gap: 8 }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => setView(v => v === 'assign' ? 'list' : 'assign')}>
-            {view === 'assign' ? '← Liste' : '⚙ Assigner juges'}
+
+          <button
+            className="btn"
+            style={{
+              background: view === 'assign' ? 'var(--surface2)' : isAssigned ? 'var(--green-dim)' : 'var(--white)',
+              color:      view === 'assign' ? 'var(--text2)'    : isAssigned ? 'var(--green)'     : '#000',
+              border:     `1px solid ${view === 'assign' ? 'var(--border2)' : isAssigned ? 'var(--green-dim)' : 'transparent'}`,
+              fontWeight: 700,
+              padding: '9px 18px',
+            }}
+            onClick={() => setView(v => v === 'assign' ? 'list' : 'assign')}
+          >
+            {view === 'assign'
+              ? '← Retour liste'
+              : isAssigned
+                ? `✓ Juges assignés (${assignedJudges.length})`
+                : '⚙ Assigner les juges'
+            }
           </button>
+        </div>
+
+        {/* Actions export / impression */}
+        <div className="flex" style={{ gap: 8 }}>
           <button className="btn btn-ghost btn-sm" onClick={exportDanseurs}>⬇ Danseurs.csv</button>
           <button className="btn btn-ghost btn-sm" onClick={print}>🖨 Imprimer feuille</button>
         </div>
       </div>
 
-      {view === 'list' && assignedJudges.length > 0 && (
-        <div className="alert-info" style={{ marginBottom: 16 }}>
-          Juges assignés au Cypher {cypher} : <strong>{assignedJudges.map(j => j.name).join(', ')}</strong>
+      {/* ══════════════════════════════════════
+          SECTION STATS
+      ══════════════════════════════════════ */}
+      <div className="grid2" style={{ marginBottom: 12 }}>
+        <div className="card" style={{ border: '1px solid #3d0000', textAlign: 'center', padding: '24px 16px' }}>
+          <div className="label" style={{ marginBottom: 8 }}>Cypher A</div>
+          <div style={{ fontSize: 56, fontWeight: 900, color: 'var(--red)', lineHeight: 1 }}>{cA}</div>
+          <div className="muted" style={{ marginTop: 6 }}>équipes</div>
         </div>
+        <div className="card" style={{ textAlign: 'center', padding: '24px 16px' }}>
+          <div className="label" style={{ marginBottom: 8 }}>Cypher B</div>
+          <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1 }}>{cB}</div>
+          <div className="muted" style={{ marginTop: 6 }}>équipes</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ textAlign: 'center', padding: '20px 16px', marginBottom: 12 }}>
+        <div className="label" style={{ marginBottom: 8 }}>Total inscrit</div>
+        <div style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{crews.length}</div>
+      </div>
+
+      {crews.length > 0 && diff > 3 && (
+        <div className="alert-warn" style={{ marginBottom: 12 }}>⚠️ <strong>Déséquilibre !</strong> Différence de {diff} équipes — orientez les inscriptions vers le Cypher {weaker}.</div>
+      )}
+      {crews.length > 0 && diff <= 3 && (
+        <div className="alert-ok" style={{ marginBottom: 12 }}>✓ Cyphers équilibrés — différence de {diff} équipe(s).</div>
       )}
 
+      <div className="grid3" style={{ marginBottom: 20 }}>
+        <div className="card card-sm">
+          <div className="label" style={{ marginBottom: 8 }}>Juges ({judges.length})</div>
+          {judges.length === 0 && <div className="caption">Aucun juge</div>}
+          {judges.map(j => (
+            <div key={j.id} className="flex-between" style={{ padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 13 }}>{j.name}</span>
+              {assignments[j.id] && <span className={assignments[j.id] === 'A' ? 'badge-a' : 'badge-b'}>Cypher {assignments[j.id]}</span>}
+            </div>
+          ))}
+        </div>
+        <div className="card card-sm">
+          <div className="label" style={{ marginBottom: 8 }}>DJs ({(djs || []).length})</div>
+          {(djs || []).length === 0 && <div className="caption">Aucun DJ</div>}
+          {(djs || []).map(d => (
+            <div key={d.id} style={{ padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>{d.name}</div>
+          ))}
+        </div>
+        <div className="card card-sm">
+          <div className="label" style={{ marginBottom: 8 }}>Speakers ({(speakers || []).length})</div>
+          {(speakers || []).length === 0 && <div className="caption">Aucun speaker</div>}
+          {(speakers || []).map(s => (
+            <div key={s.id} style={{ padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>{s.name}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════
+          SECTION QUALIFICATION
+      ══════════════════════════════════════ */}
+
+      {/* Vue assignation juges */}
       {view === 'assign' && (
         <div className="card">
-          <div className="title-sm" style={{ marginBottom: 16 }}>Assigner les juges à un cypher</div>
+          <div className="title-sm" style={{ marginBottom: 16 }}>Assigner les juges — Cypher <span style={{ color: cypher === 'A' ? 'var(--red)' : 'var(--text)' }}>{cypher}</span></div>
           {judges.length === 0 && <div className="caption">Aucun juge configuré.</div>}
           {judges.map(j => (
             <div key={j.id} className="flex-between" style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
@@ -204,10 +274,14 @@ export default function QualificationTab({ battle, judges, crews, setCrews }) {
         </div>
       )}
 
+      {/* Vue liste équipes */}
       {view === 'list' && (
         <div className="card">
           <div className="flex-between" style={{ marginBottom: 16 }}>
-            <div><span className="muted">Cypher </span><strong style={{ color: cypher === 'A' ? 'var(--red)' : 'var(--text)' }}>{cypher}</strong></div>
+            <div>
+              <span className="muted">Cypher </span>
+              <strong style={{ color: cypher === 'A' ? 'var(--red)' : 'var(--text)' }}>{cypher}</strong>
+            </div>
             <span className="muted">{filtered.length} équipe(s)</span>
           </div>
           {filtered.length === 0 ? <div className="caption">Aucune équipe dans ce cypher.</div> : (
