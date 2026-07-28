@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import InscriptionTab   from '../tabs/InscriptionTab'
 import QualificationTab from '../tabs/QualificationTab'
-import StatsTab         from '../tabs/StatsTab'
 import Top16Tab         from '../tabs/Top16Tab'
 import BracketTab       from '../tabs/BracketTab'
 
 const TABS = [
   { id: 'inscription',   label: 'Inscriptions' },
-  { id: 'qualification', label: 'Qualification' },
-  { id: 'stats',         label: 'Stats' },
+  { id: 'qualification', label: 'Qualification & Stats' },
   { id: 'top16',         label: 'TOP 16' },
   { id: 'bracket',       label: 'Bracket' },
 ]
@@ -110,7 +108,6 @@ export default function BattlePage({ battle, onPause, onConfig, onClose }) {
 
       {tab === 'inscription'   && <InscriptionTab   {...sharedProps} />}
       {tab === 'qualification' && <QualificationTab {...sharedProps} />}
-      {tab === 'stats'         && <StatsTab         {...sharedProps} />}
       {tab === 'top16'         && <Top16Tab         {...sharedProps} />}
       {tab === 'bracket'       && <BracketTab       {...sharedProps} />}
     </div>
