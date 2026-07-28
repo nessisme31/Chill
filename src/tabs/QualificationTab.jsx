@@ -75,7 +75,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
     URL.revokeObjectURL(url)
   }
 
-  // ── Impression feuille juges (inchangée)
+  // ── Impression feuille juges
   const print = () => {
     const rows = filtered.map(c => `<tr>
       <td style="font-weight:800;color:${cypher === 'A' ? '#c0392b' : '#555'};width:60px">${c.sticker}</td>
@@ -157,44 +157,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
       )}
 
       {/* ══════════════════════════════════════
-          BARRE DE BOUTONS — toujours en haut
-      ══════════════════════════════════════ */}
-      <div className="flex-between" style={{ marginBottom: 20 }}>
-
-        {/* Sélecteur cypher + bouton Assigner (mis en valeur) */}
-        <div className="flex" style={{ gap: 10, alignItems: 'center' }}>
-          <button className="btn btn-sm" style={{ background: cypher === 'A' ? 'var(--red-dim)' : 'var(--surface2)', color: cypher === 'A' ? 'var(--red)' : 'var(--text2)', border: `1px solid ${cypher === 'A' ? 'var(--red-dim)' : 'var(--border2)'}` }} onClick={() => setCypher('A')}>Cypher A</button>
-          <button className="btn btn-sm" style={{ background: cypher === 'B' ? 'var(--surface)' : 'var(--surface2)', color: cypher === 'B' ? 'var(--text)' : 'var(--text2)', border: `1px solid ${cypher === 'B' ? 'var(--border)' : 'var(--border2)'}` }} onClick={() => setCypher('B')}>Cypher B</button>
-
-          <button
-            className="btn"
-            style={{
-              background: view === 'assign' ? 'var(--surface2)' : isAssigned ? 'var(--green-dim)' : 'var(--white)',
-              color:      view === 'assign' ? 'var(--text2)'    : isAssigned ? 'var(--green)'     : '#000',
-              border:     `1px solid ${view === 'assign' ? 'var(--border2)' : isAssigned ? 'var(--green-dim)' : 'transparent'}`,
-              fontWeight: 700,
-              padding: '9px 18px',
-            }}
-            onClick={() => setView(v => v === 'assign' ? 'list' : 'assign')}
-          >
-            {view === 'assign'
-              ? '← Retour liste'
-              : isAssigned
-                ? `✓ Juges assignés (${assignedJudges.length})`
-                : '⚙ Assigner les juges'
-            }
-          </button>
-        </div>
-
-        {/* Actions export / impression */}
-        <div className="flex" style={{ gap: 8 }}>
-          <button className="btn btn-ghost btn-sm" onClick={exportDanseurs}>⬇ Danseurs.csv</button>
-          <button className="btn btn-ghost btn-sm" onClick={print}>🖨 Imprimer feuille</button>
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════
-          SECTION STATS
+          SECTION STATS — en haut
       ══════════════════════════════════════ */}
       <div className="grid2" style={{ marginBottom: 12 }}>
         <div className="card" style={{ border: '1px solid #3d0000', textAlign: 'center', padding: '24px 16px' }}>
@@ -221,7 +184,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
         <div className="alert-ok" style={{ marginBottom: 12 }}>✓ Cyphers équilibrés — différence de {diff} équipe(s).</div>
       )}
 
-      <div className="grid3" style={{ marginBottom: 20 }}>
+      <div className="grid3" style={{ marginBottom: 24 }}>
         <div className="card card-sm">
           <div className="label" style={{ marginBottom: 8 }}>Juges ({judges.length})</div>
           {judges.length === 0 && <div className="caption">Aucun juge</div>}
@@ -249,13 +212,48 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
       </div>
 
       {/* ══════════════════════════════════════
-          SECTION QUALIFICATION
+          SÉPARATEUR
+      ══════════════════════════════════════ */}
+      <div style={{ borderTop: '1px solid var(--border2)', marginBottom: 20 }} />
+
+      {/* ══════════════════════════════════════
+          SECTION QUALIFICATION — en bas
+          Ordre : Assigner → Panel → Cypher A/B → Table
       ══════════════════════════════════════ */}
 
-      {/* Vue assignation juges */}
+      {/* Ligne export + bouton Assigner */}
+      <div className="flex-between" style={{ marginBottom: 16 }}>
+        <button
+          className="btn"
+          style={{
+            background: view === 'assign' ? 'var(--surface2)' : isAssigned ? 'var(--green-dim)' : 'var(--white)',
+            color:      view === 'assign' ? 'var(--text2)'    : isAssigned ? 'var(--green)'     : '#000',
+            border:     `1px solid ${view === 'assign' ? 'var(--border2)' : isAssigned ? 'var(--green-dim)' : 'transparent'}`,
+            fontWeight: 700,
+            padding: '9px 18px',
+          }}
+          onClick={() => setView(v => v === 'assign' ? 'list' : 'assign')}
+        >
+          {view === 'assign'
+            ? '← Retour liste'
+            : isAssigned
+              ? `✓ Juges assignés (${assignedJudges.length})`
+              : '⚙ Assigner les juges'
+          }
+        </button>
+
+        <div className="flex" style={{ gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={exportDanseurs}>⬇ Danseurs.csv</button>
+          <button className="btn btn-ghost btn-sm" onClick={print}>🖨 Imprimer feuille</button>
+        </div>
+      </div>
+
+      {/* Panel d'assignation — s'ouvre ici, au-dessus des boutons cypher */}
       {view === 'assign' && (
-        <div className="card">
-          <div className="title-sm" style={{ marginBottom: 16 }}>Assigner les juges — Cypher <span style={{ color: cypher === 'A' ? 'var(--red)' : 'var(--text)' }}>{cypher}</span></div>
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="title-sm" style={{ marginBottom: 16 }}>
+            Assigner les juges à un cypher
+          </div>
           {judges.length === 0 && <div className="caption">Aucun juge configuré.</div>}
           {judges.map(j => (
             <div key={j.id} className="flex-between" style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
@@ -274,13 +272,42 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
         </div>
       )}
 
-      {/* Vue liste équipes */}
+      {/* Sélecteur Cypher A / B — juste au-dessus du tableau */}
+      <div className="flex" style={{ gap: 8, marginBottom: 12 }}>
+        <button
+          className="btn btn-sm"
+          style={{
+            background: cypher === 'A' ? 'var(--red-dim)' : 'var(--surface2)',
+            color: cypher === 'A' ? 'var(--red)' : 'var(--text2)',
+            border: `1px solid ${cypher === 'A' ? 'var(--red-dim)' : 'var(--border2)'}`,
+          }}
+          onClick={() => setCypher('A')}
+        >
+          Cypher A
+        </button>
+        <button
+          className="btn btn-sm"
+          style={{
+            background: cypher === 'B' ? 'var(--surface)' : 'var(--surface2)',
+            color: cypher === 'B' ? 'var(--text)' : 'var(--text2)',
+            border: `1px solid ${cypher === 'B' ? 'var(--border)' : 'var(--border2)'}`,
+          }}
+          onClick={() => setCypher('B')}
+        >
+          Cypher B
+        </button>
+      </div>
+
+      {/* Tableau équipes */}
       {view === 'list' && (
         <div className="card">
           <div className="flex-between" style={{ marginBottom: 16 }}>
             <div>
               <span className="muted">Cypher </span>
               <strong style={{ color: cypher === 'A' ? 'var(--red)' : 'var(--text)' }}>{cypher}</strong>
+              {isAssigned && (
+                <span className="muted"> — Juges : <strong>{assignedJudges.map(j => j.name).join(', ')}</strong></span>
+              )}
             </div>
             <span className="muted">{filtered.length} équipe(s)</span>
           </div>
