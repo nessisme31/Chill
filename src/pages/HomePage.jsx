@@ -2,19 +2,26 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 export default function HomePage({ onNewBattle, onOpenBattle }) {
-  const [battles, setBattles] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [battles,  setBattles]  = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [deleting, setDeleting] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   useEffect(() => { loadBattles() }, [])
 
   const loadBattles = async () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('battles')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('battles').select('*').order('created_at', { ascending: false })
     if (!error) setBattles(data || [])
     setLoading(false)
+  }
+
+  const handleDelete = async (battle) => {
+    setDeleting(battle.id)
+    await supabase.from('battles').delete().eq('id', battle.id)
+    setBattles(prev => prev.filter(b => b.id !== battle.id))
+    setConfirmDelete(null)
+    setDeleting(null)
   }
 
   const statusLabel = (s) => {
@@ -28,6 +35,35 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
 
   return (
     <div className="page">
+
+      {/* Modale confirmation suppression */}
+      {confirmDelete && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
+          <div className="card" style={{ maxWidth: 360, width: '100%', textAlign: 'center', padding: '36px 28px' }}>
+            <div style={{ fontSize: 28, marginBottom: 12 }}>🗑️</div>
+            <div className="title-sm" style={{ marginBottom: 8 }}>Supprimer cette archive ?</div>
+            <div className="muted" style={{ marginBottom: 6 }}>
+              <strong style={{ color: 'var(--text)' }}>{confirmDelete.name}</strong>
+            </div>
+            <div className="muted" style={{ marginBottom: 28 }}>
+              Toutes les données seront effacées définitivement (équipes, scores, bracket…).
+            </div>
+            <div className="flex-center" style={{ gap: 10 }}>
+              <button className="btn btn-ghost" onClick={() => setConfirmDelete(null)}>Annuler</button>
+              <button
+                className="btn btn-red"
+                style={{ padding: '8px 20px' }}
+                onClick={() => handleDelete(confirmDelete)}
+                disabled={deleting === confirmDelete.id}
+              >
+                {deleting === confirmDelete.id ? '…' : '🗑 Supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="flex-between" style={{ marginBottom: 32 }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 6 }}>
@@ -35,9 +71,7 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
           </div>
           <div className="title-lg">Les Chill</div>
         </div>
-        <button className="btn btn-white" onClick={onNewBattle}>
-          + Nouveau Battle
-        </button>
+        <button className="btn btn-white" onClick={onNewBattle}>+ Nouveau Battle</button>
       </div>
 
       {loading ? (
@@ -51,20 +85,17 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
         </div>
       ) : (
         <div>
+          {/* Actifs */}
           {activeBattles.length > 0 && (
             <div style={{ marginBottom: 28 }}>
               <div className="label" style={{ marginBottom: 12 }}>Battles actifs</div>
               {activeBattles.map(b => {
                 const st = statusLabel(b.status)
                 return (
-                  <div
-                    key={b.id}
-                    className="card"
-                    style={{ cursor: 'pointer', transition: 'border-color .15s' }}
+                  <div key={b.id} className="card" style={{ cursor: 'pointer', transition: 'border-color .15s' }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = '#333'}
                     onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-                    onClick={() => onOpenBattle(b)}
-                  >
+                    onClick={() => onOpenBattle(b)}>
                     <div className="flex-between">
                       <div>
                         <div className="flex" style={{ marginBottom: 6 }}>
@@ -72,7 +103,7 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
                           <span style={{ fontWeight: 700, fontSize: 16 }}>{b.name}</span>
                         </div>
                         <div className="flex" style={{ gap: 16 }}>
-                          {b.date && <span className="muted">📅 {new Date(b.date).toLocaleDateString('fr-FR')}</span>}
+                          {b.date  && <span className="muted">📅 {new Date(b.date).toLocaleDateString('fr-FR')}</span>}
                           {b.venue && <span className="muted">📍 {b.venue}</span>}
                           <span className="muted">{st.label}</span>
                         </div>
@@ -87,26 +118,22 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
             </div>
           )}
 
+          {/* Archives */}
           {completedBattles.length > 0 && (
             <div>
               <div className="label" style={{ marginBottom: 12 }}>Archives</div>
               {completedBattles.map(b => (
-                <div
-                  key={b.id}
-                  className="card"
-                  style={{ cursor: 'pointer', transition: 'border-color .15s' }}
+                <div key={b.id} className="card" style={{ transition: 'border-color .15s' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = '#333'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-                  onClick={() => onOpenBattle(b)}
-                >
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
                   <div className="flex-between">
-                    <div>
+                    <div style={{ cursor: 'pointer', flex: 1 }} onClick={() => onOpenBattle(b)}>
                       <div className="flex" style={{ marginBottom: 6 }}>
                         <span className="dot-done"></span>
                         <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text2)' }}>{b.name}</span>
                       </div>
                       <div className="flex" style={{ gap: 16, marginBottom: b.champion_name ? 8 : 0 }}>
-                        {b.date && <span className="muted">📅 {new Date(b.date).toLocaleDateString('fr-FR')}</span>}
+                        {b.date  && <span className="muted">📅 {new Date(b.date).toLocaleDateString('fr-FR')}</span>}
                         {b.venue && <span className="muted">📍 {b.venue}</span>}
                         <span className="muted">Clôturé</span>
                       </div>
@@ -117,7 +144,16 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
                         </div>
                       )}
                     </div>
-                    <span style={{ color: 'var(--text3)', fontSize: 12 }}>Consulter →</span>
+                    <div className="flex" style={{ gap: 8, marginLeft: 16 }}>
+                      <span style={{ color: 'var(--text3)', fontSize: 12, cursor: 'pointer' }} onClick={() => onOpenBattle(b)}>Consulter →</span>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ color: 'var(--red)', borderColor: 'var(--red-dim)', padding: '4px 10px' }}
+                        onClick={e => { e.stopPropagation(); setConfirmDelete(b) }}
+                      >
+                        🗑
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
