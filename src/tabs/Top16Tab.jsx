@@ -2,12 +2,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 export default function Top16Tab({ battle, judges, crews }) {
-  const [scores,    setScores]    = useState({})
-  const [view,      setView]      = useState('scores')
-  const [guests,    setGuests]    = useState([])
-  const [guestInput, setGuestInput] = useState('')
-  const [validated, setValidated]  = useState(false)
-  const [saving,    setSaving]    = useState(false)
+  const [scores,      setScores]      = useState({})
+  const [view,        setView]        = useState('scores')
+  const [cypher,      setCypher]      = useState('A')
+  const [guests,      setGuests]      = useState([])
+  const [guestInput,  setGuestInput]  = useState('')
+  const [validated,   setValidated]   = useState(false)
+  const [saving,      setSaving]      = useState(false)
+  const [assignments, setAssignments] = useState({})
 
   useEffect(() => { loadData() }, [battle.id])
 
@@ -25,32 +27,44 @@ export default function Top16Tab({ battle, judges, crews }) {
     if (bData?.top16_validated) setValidated(true)
     const { data: gData } = await supabase.from('top16_guests').select('*').eq('battle_id', battle.id).order('position')
     if (gData) setGuests(gData)
+    const { data: jData } = await supabase.from('judges').select('id, cypher').eq('battle_id', battle.id)
+    if (jData) {
+      const map = {}
+      jData.forEach(j => { if (j.cypher) map[j.id] = j.cypher })
+      setAssignments(map)
+    }
   }
+
+  const judgesForCypher = judges.filter(j => {
+    const a = assignments[j.id]
+    return a === cypher || a === 'both'
+  })
+  const crewsForCypher = crews.filter(c => c.cypher === cypher)
 
   const getTotal = (crewId) =>
     Object.values(scores[crewId] || {}).reduce((a, b) => a + (Number(b) || 0), 0)
 
   const ranking = useMemo(() => {
-    const sorted = crews
+    return [...crews]
       .map(c => ({ ...c, total: getTotal(c.id) }))
       .sort((a, b) => b.total - a.total)
-    if (sorted.length <= 16) return sorted
-    const cut = sorted[15].total
-    return sorted.filter(c => c.total >= cut)
   }, [crews, scores])
 
   const updateScore = async (crewId, judgeId, val) => {
     const num = val === '' ? null : Math.min(5, Math.max(0, parseFloat(val) || 0))
     setScores(prev => ({ ...prev, [crewId]: { ...(prev[crewId] || {}), [judgeId]: num } }))
     setSaving(true)
-    await supabase.from('top16_scores').upsert({ battle_id: battle.id, crew_id: crewId, judge_id: judgeId, score: num })
+    await supabase.from('top16_scores').upsert({
+      battle_id: battle.id, crew_id: crewId, judge_id: judgeId, score: num
+    }, { onConflict: 'battle_id,crew_id,judge_id' })
     setSaving(false)
   }
 
   const addGuest = async () => {
     if (!guestInput.trim()) return
-    const pos = guests.length
-    const { data } = await supabase.from('top16_guests').insert({ battle_id: battle.id, name: guestInput.trim(), position: pos }).select().single()
+    const { data } = await supabase.from('top16_guests')
+      .insert({ battle_id: battle.id, name: guestInput.trim(), position: guests.length })
+      .select().single()
     if (data) setGuests(prev => [...prev, data])
     setGuestInput('')
   }
@@ -63,13 +77,14 @@ export default function Top16Tab({ battle, judges, crews }) {
   const validate = async () => {
     await supabase.from('battles').update({ top16_validated: true }).eq('id', battle.id)
     setValidated(true)
-    alert("✅ TOP 16 validé ! Les équipes sont maintenant disponibles dans l'onglet Bracket.")
+    alert("✅ TOP 16 validé ! Les équipes sont disponibles dans l'onglet Bracket.")
   }
 
   const fullRanking = [
     ...guests.map((g, i) => ({ isGuest: true, name: g.name, id: g.id, rank: i + 1 })),
     ...ranking.map((c, i) => ({ ...c, isGuest: false, rank: guests.length + i + 1 })),
   ]
+  const TOP_N = 16
 
   return (
     <div>
@@ -78,45 +93,53 @@ export default function Top16Tab({ battle, judges, crews }) {
         <div className="flex" style={{ gap: 8 }}>
           {saving && <span className="caption">Enregistrement…</span>}
           {view === 'scores' && (
-            <button className="btn btn-white" onClick={() => setView('ranking')}>
-              Voir le classement →
-            </button>
+            <button className="btn btn-white" onClick={() => setView('ranking')}>Voir le classement →</button>
           )}
           {view === 'ranking' && (
-            <button className="btn btn-ghost" onClick={() => setView('scores')}>
-              ← Retour
-            </button>
+            <button className="btn btn-ghost" onClick={() => setView('scores')}>← Retour</button>
           )}
         </div>
       </div>
 
       {view === 'scores' && (
-        <div className="card">
-          {crews.length === 0
-            ? <div className="caption">Aucune équipe inscrite.</div>
-            : <div style={{ overflowX: 'auto' }}>
-                <table className="tbl" style={{ minWidth: 500 }}>
+        <div>
+          <div className="flex" style={{ gap: 8, marginBottom: 16 }}>
+            <button className="btn btn-sm" style={{ background: cypher === 'A' ? 'var(--red-dim)' : 'var(--surface2)', color: cypher === 'A' ? 'var(--red)' : 'var(--text2)', border: `1px solid ${cypher === 'A' ? 'var(--red-dim)' : 'var(--border2)'}` }} onClick={() => setCypher('A')}>Cypher A</button>
+            <button className="btn btn-sm" style={{ background: cypher === 'B' ? 'var(--surface)' : 'var(--surface2)', color: cypher === 'B' ? 'var(--text)' : 'var(--text2)', border: `1px solid ${cypher === 'B' ? 'var(--border)' : 'var(--border2)'}` }} onClick={() => setCypher('B')}>Cypher B</button>
+          </div>
+          {judgesForCypher.length === 0 && (
+            <div className="alert-warn" style={{ marginBottom: 12 }}>
+              ⚠️ Aucun juge assigné au Cypher {cypher}. Allez dans Qualification → Assigner juges.
+            </div>
+          )}
+          <div className="card">
+            <div style={{ marginBottom: 12 }}>
+              <span className="muted">Cypher </span>
+              <strong style={{ color: cypher === 'A' ? 'var(--red)' : 'var(--text)' }}>{cypher}</strong>
+              <span className="muted"> — {crewsForCypher.length} équipes — {judgesForCypher.length} juge(s)</span>
+            </div>
+            {crewsForCypher.length === 0 ? (
+              <div className="caption">Aucune équipe dans ce cypher.</div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="tbl" style={{ minWidth: 400 }}>
                   <thead>
                     <tr>
-                      <th>Sticker</th>
-                      <th>Crew</th>
-                      {judges.map(j => <th key={j.id} style={{ textAlign: 'center' }}>{j.name}</th>)}
+                      <th>Sticker</th><th>Crew</th>
+                      {judgesForCypher.map(j => <th key={j.id} style={{ textAlign: 'center' }}>{j.name}</th>)}
                       <th style={{ textAlign: 'center' }}>Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {crews.map(c => (
+                    {crewsForCypher.map(c => (
                       <tr key={c.id}>
                         <td><span className={c.cypher === 'A' ? 'sticker-a' : 'sticker-b'}>{c.sticker}</span></td>
                         <td style={{ fontWeight: 600 }}>{c.name}</td>
-                        {judges.map(j => (
+                        {judgesForCypher.map(j => (
                           <td key={j.id} style={{ textAlign: 'center' }}>
-                            <input
-                              type="number" min="0" max="5" step="0.5"
-                              className="input-score"
+                            <input type="number" min="0" max="5" step="0.5" className="input-score"
                               value={scores[c.id]?.[j.id] ?? ''}
-                              onChange={e => updateScore(c.id, j.id, e.target.value)}
-                            />
+                              onChange={e => updateScore(c.id, j.id, e.target.value)} />
                           </td>
                         ))}
                         <td style={{ textAlign: 'center' }}>
@@ -127,7 +150,8 @@ export default function Top16Tab({ battle, judges, crews }) {
                   </tbody>
                 </table>
               </div>
-          }
+            )}
+          </div>
         </div>
       )}
 
@@ -138,61 +162,61 @@ export default function Top16Tab({ battle, judges, crews }) {
               ✓ TOP 16 validé — les équipes sont disponibles dans l'onglet Bracket.
             </div>
           )}
-
           <div className="card" style={{ marginBottom: 16 }}>
-            <div className="label" style={{ marginBottom: 10 }}>Ajouter un guest (prend la place #1)</div>
+            <div className="label" style={{ marginBottom: 10 }}>Ajouter un guest (prend la place #1, décale les autres)</div>
             <div className="flex" style={{ gap: 8 }}>
-              <input
-                className="input"
-                style={{ flex: 1 }}
-                value={guestInput}
+              <input className="input" style={{ flex: 1 }} value={guestInput}
                 onChange={e => setGuestInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addGuest()}
-                placeholder="Nom du guest / crew invité"
-              />
+                placeholder="Nom du guest / crew invité" />
               <button className="btn btn-ghost" onClick={addGuest}>+ Ajouter</button>
             </div>
           </div>
-
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="flex-between" style={{ marginBottom: 16 }}>
               <div className="title-sm">Classement</div>
               <span className="muted">{fullRanking.length} équipe(s)</span>
             </div>
-            {fullRanking.map((c, i) => (
-              <div
-                key={c.id}
-                className="flex"
-                style={{
-                  padding: '11px 0',
-                  borderBottom: '1px solid var(--border)',
-                  background: c.isGuest ? 'linear-gradient(90deg, #2d1a00 0%, transparent 100%)' : 'transparent',
-                  paddingLeft: c.isGuest ? 8 : 0,
-                  borderRadius: c.isGuest ? 4 : 0,
-                }}
-              >
-                <div style={{ fontWeight: 900, fontSize: 18, color: c.isGuest ? 'var(--gold)' : 'var(--text2)', width: 36, flexShrink: 0, textAlign: 'center' }}>
-                  #{c.rank}
-                </div>
-                {!c.isGuest && (
-                  <span className={c.cypher === 'A' ? 'sticker-a' : 'sticker-b'} style={{ marginRight: 4 }}>{c.sticker}</span>
-                )}
-                {c.isGuest && <span style={{ fontSize: 16 }}>⭐</span>}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: c.isGuest ? 'var(--gold)' : 'var(--text)' }}>
-                    {c.name}
-                    {c.isGuest && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 400, color: 'var(--gold)', opacity: .8 }}>GUEST</span>}
+            {fullRanking.map((c, i) => {
+              const inTop16 = i < TOP_N
+              return (
+                <div key={c.id}>
+                  {i === TOP_N && fullRanking.length > TOP_N && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '12px 0', opacity: .6 }}>
+                      <div style={{ flex: 1, height: 1, background: 'var(--border2)' }} />
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '1px', whiteSpace: 'nowrap' }}>hors TOP 16</span>
+                      <div style={{ flex: 1, height: 1, background: 'var(--border2)' }} />
+                    </div>
+                  )}
+                  <div className="flex" style={{
+                    padding: inTop16 ? '11px 0' : '7px 0',
+                    borderBottom: '1px solid var(--border)',
+                    opacity: inTop16 ? 1 : 0.35,
+                    background: c.isGuest ? 'linear-gradient(90deg, #2d1a00 0%, transparent 100%)' : 'transparent',
+                    paddingLeft: c.isGuest ? 8 : 0,
+                    borderRadius: c.isGuest ? 4 : 0,
+                  }}>
+                    <div style={{ fontWeight: 900, fontSize: inTop16 ? 17 : 13, color: c.isGuest ? 'var(--gold)' : inTop16 ? 'var(--text2)' : 'var(--text3)', width: 36, flexShrink: 0, textAlign: 'center' }}>
+                      #{c.rank}
+                    </div>
+                    {!c.isGuest && <span className={c.cypher === 'A' ? 'sticker-a' : 'sticker-b'} style={{ marginRight: 4, fontSize: inTop16 ? 15 : 12 }}>{c.sticker}</span>}
+                    {c.isGuest && <span style={{ fontSize: inTop16 ? 16 : 13 }}>⭐</span>}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: inTop16 ? 700 : 500, fontSize: inTop16 ? 14 : 12, color: c.isGuest ? 'var(--gold)' : inTop16 ? 'var(--text)' : 'var(--text3)' }}>
+                        {c.name}
+                        {c.isGuest && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 400, color: 'var(--gold)', opacity: .8 }}>GUEST</span>}
+                      </div>
+                      {!c.isGuest && <div className="caption" style={{ opacity: inTop16 ? 1 : 0.6 }}>{c.member1} &amp; {c.member2}</div>}
+                    </div>
+                    {c.isGuest
+                      ? <button className="btn btn-ghost btn-sm" onClick={() => removeGuest(c.id)}>✕</button>
+                      : <span style={{ fontSize: inTop16 ? 12 : 11, color: inTop16 ? 'var(--text)' : 'var(--text3)' }}>{c.total} pts</span>
+                    }
                   </div>
-                  {!c.isGuest && <div className="caption">{c.member1} &amp; {c.member2}</div>}
                 </div>
-                {c.isGuest
-                  ? <button className="btn btn-ghost btn-sm" onClick={() => removeGuest(c.id)}>✕</button>
-                  : <span className="badge-score">{c.total} pts</span>
-                }
-              </div>
-            ))}
-
-            {!validated && (
+              )
+            })}
+            {!validated && fullRanking.length > 0 && (
               <button className="btn btn-white btn-lg btn-full" style={{ marginTop: 20 }} onClick={validate}>
                 ✓ Valider le TOP 16 → Bracket
               </button>
