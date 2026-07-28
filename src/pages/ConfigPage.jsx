@@ -1,9 +1,36 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-const mkJudges   = () => Array(5).fill('').map((_, i) => ({ id: null, name: '', pos: i }))
-const mkDjs      = () => [{ id: null, name: 'Loony', pos: 0 }, { id: null, name: '', pos: 1 }]
-const mkSpeakers = () => [{ id: null, name: 'Youval', pos: 0 }, { id: null, name: 'Skezzo', pos: 1 }]
+// ⚠️ Section doit être en dehors de ConfigPage pour éviter le bug de refocus
+function Section({ label, items, onAdd, onRm, onUpd, addLabel }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div className="flex-between" style={{ marginBottom: 12 }}>
+        <div className="label" style={{ margin: 0 }}>{label}</div>
+        <button className="btn btn-ghost btn-sm" onClick={onAdd}>+ {addLabel}</button>
+      </div>
+      {items.map((x, i) => (
+        <div key={x.uid ?? x.id ?? i} className="flex" style={{ marginBottom: 8 }}>
+          <input
+            className="input"
+            value={x.name}
+            onChange={e => onUpd(i, e.target.value)}
+            placeholder={`${addLabel} ${i + 1}`}
+            style={{ flex: 1 }}
+          />
+          {items.length > 1 && (
+            <button className="btn btn-ghost btn-sm" onClick={() => onRm(i)}>✕</button>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const mkJudges   = () => Array(5).fill('').map((_, i) => ({ id: null, uid: i, name: '' }))
+const mkDjs      = () => [{ id: null, uid: 0, name: 'Loony' }, { id: null, uid: 1, name: '' }]
+const mkSpeakers = () => [{ id: null, uid: 0, name: 'Youval' }, { id: null, uid: 1, name: 'Skezzo' }]
+let uidCounter = 100
 
 export default function ConfigPage({ battle, onSave, onCancel }) {
   const isEditing = !!battle
@@ -28,14 +55,28 @@ export default function ConfigPage({ battle, onSave, onCancel }) {
       supabase.from('djs').select('*').eq('battle_id', battle.id).order('position'),
       supabase.from('speakers').select('*').eq('battle_id', battle.id).order('position'),
     ])
-    if (jData?.length) { setJudges(jData.map((j, i) => ({ id: j.id, name: j.name, pos: i }))); setOrigJudgeIds(jData.map(j => j.id)) }
-    if (dData?.length) { setDjs(dData.map((d, i) => ({ id: d.id, name: d.name, pos: i }))); setOrigDjIds(dData.map(d => d.id)) }
-    if (sData?.length) { setSpeakers(sData.map((s, i) => ({ id: s.id, name: s.name, pos: i }))); setOrigSpeakerIds(sData.map(s => s.id)) }
+    if (jData?.length) {
+      setJudges(jData.map(j => ({ id: j.id, uid: j.id, name: j.name })))
+      setOrigJudgeIds(jData.map(j => j.id))
+    }
+    if (dData?.length) {
+      setDjs(dData.map(d => ({ id: d.id, uid: d.id, name: d.name })))
+      setOrigDjIds(dData.map(d => d.id))
+    }
+    if (sData?.length) {
+      setSpeakers(sData.map(s => ({ id: s.id, uid: s.id, name: s.name })))
+      setOrigSpeakerIds(sData.map(s => s.id))
+    }
   }
 
-  const updItem = (setter) => (i, v) => setter(a => a.map((x, k) => k === i ? { ...x, name: v } : x))
-  const addItem = (setter) => () => setter(a => [...a, { id: null, name: '', pos: a.length }])
-  const rmItem  = (setter) => (i) => setter(a => a.filter((_, k) => k !== i))
+  const updItem = (setter) => (i, v) =>
+    setter(a => a.map((x, k) => k === i ? { ...x, name: v } : x))
+
+  const addItem = (setter) => () =>
+    setter(a => [...a, { id: null, uid: ++uidCounter, name: '' }])
+
+  const rmItem = (setter) => (i) =>
+    setter(a => a.filter((_, k) => k !== i))
 
   const smartSave = async (table, items, origIds, battleId) => {
     const toUpdate = items.filter(x => x.id !== null && x.name.trim())
@@ -86,21 +127,6 @@ export default function ConfigPage({ battle, onSave, onCancel }) {
     }
   }
 
-  const Section = ({ label, items, onAdd, onRm, onUpd, addLabel }) => (
-    <div style={{ marginBottom: 20 }}>
-      <div className="flex-between" style={{ marginBottom: 12 }}>
-        <div className="label" style={{ margin: 0 }}>{label}</div>
-        <button className="btn btn-ghost btn-sm" onClick={onAdd}>+ {addLabel}</button>
-      </div>
-      {items.map((x, i) => (
-        <div key={i} className="flex" style={{ marginBottom: 8 }}>
-          <input className="input" value={x.name} onChange={e => onUpd(i, e.target.value)} placeholder={`${addLabel} ${i + 1}`} style={{ flex: 1 }} />
-          {items.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => onRm(i)}>✕</button>}
-        </div>
-      ))}
-    </div>
-  )
-
   return (
     <div className="page-sm">
       <button className="btn btn-ghost btn-sm" style={{ marginBottom: 24 }} onClick={onCancel}>← Retour</button>
@@ -124,11 +150,14 @@ export default function ConfigPage({ battle, onSave, onCancel }) {
           </div>
         </div>
         <hr className="divider" />
-        <Section label="Juges" items={judges} addLabel="Juge" onAdd={addItem(setJudges)} onRm={rmItem(setJudges)} onUpd={updItem(setJudges)} />
+        <Section label="Juges" items={judges} addLabel="Juge"
+          onAdd={addItem(setJudges)} onRm={rmItem(setJudges)} onUpd={updItem(setJudges)} />
         <hr className="divider" />
-        <Section label="DJs" items={djs} addLabel="DJ" onAdd={addItem(setDjs)} onRm={rmItem(setDjs)} onUpd={updItem(setDjs)} />
+        <Section label="DJs" items={djs} addLabel="DJ"
+          onAdd={addItem(setDjs)} onRm={rmItem(setDjs)} onUpd={updItem(setDjs)} />
         <hr className="divider" />
-        <Section label="Speakers" items={speakers} addLabel="Speaker" onAdd={addItem(setSpeakers)} onRm={rmItem(setSpeakers)} onUpd={updItem(setSpeakers)} />
+        <Section label="Speakers" items={speakers} addLabel="Speaker"
+          onAdd={addItem(setSpeakers)} onRm={rmItem(setSpeakers)} onUpd={updItem(setSpeakers)} />
         <button className="btn btn-white btn-lg btn-full" style={{ marginTop: 8 }} onClick={submit} disabled={saving}>
           {saving ? 'Enregistrement…' : isEditing ? '💾 Enregistrer' : '🚀 Lancer le battle'}
         </button>
