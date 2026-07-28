@@ -26,6 +26,27 @@ export default function QualificationTab({ battle, judges, crews }) {
 
   const assignedJudges = judges.filter(j => assignments[j.id] === cypher)
 
+  // ── Export CSV Danseurs (tous les cyphers)
+  const exportDanseurs = () => {
+    const rows = [['Blasé', 'Crew', 'Email']]
+    crews.forEach(c => {
+      rows.push([c.member1 || '', c.name || '', c.email || ''])
+      rows.push([c.member2 || '', c.name || '', c.email || ''])
+    })
+    const csv = '\uFEFF' + rows.map(r =>
+      r.map(cell => `"${String(cell).replace(/"/g, '""')}"`)
+       .join(';')
+    ).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `${battle.name.replace(/\s+/g, '_')}_danseurs.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // ── Impression feuille juges
   const print = () => {
     const rows = filtered.map(c => `
       <tr>
@@ -61,7 +82,12 @@ export default function QualificationTab({ battle, judges, crews }) {
           <button className="btn btn-ghost btn-sm" onClick={() => setView(v => v === 'assign' ? 'list' : 'assign')}>
             {view === 'assign' ? '← Liste' : '⚙ Assigner juges'}
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={print}>🖨 Imprimer feuille</button>
+          <button className="btn btn-ghost btn-sm" onClick={exportDanseurs} title="Export tous les danseurs (tous cyphers)">
+            ⬇ Danseurs.csv
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={print}>
+            🖨 Imprimer feuille
+          </button>
         </div>
       </div>
 
