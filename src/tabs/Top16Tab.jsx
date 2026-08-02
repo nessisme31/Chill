@@ -172,11 +172,10 @@ export default function Top16Tab({ battle, judges, crews }) {
           position:     pos,
           crew_id:      t.isGuest ? null : t.id,
           team_name:    t.name,
-          sticker:      t.sticker      || null,
-          cypher:       t.cypher       || null,
-          is_guest:     t.isGuest      || false,
+          sticker:      t.sticker  || null,
+          cypher:       t.cypher   || null,
+          is_guest:     t.isGuest  || false,
           is_winner:    false,
-          country_code: t.country_code || null,
         })
       })
     }
