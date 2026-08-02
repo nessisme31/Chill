@@ -40,7 +40,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
   // ── Édition
   const openEdit = (crew) => {
     setEditing(crew)
-    setEditForm({ name: crew.name, member1: crew.member1, member2: crew.member2, email: crew.email || '' })
+    setEditForm({ name: crew.name, member1: crew.member1, member2: crew.member2 })
   }
 
   const saveEdit = async () => {
@@ -48,7 +48,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
       alert('Nom du crew et membres obligatoires'); return
     }
     setSaving(true)
-    const updates = { name: editForm.name.trim(), member1: editForm.member1.trim(), member2: editForm.member2.trim(), email: editForm.email.trim() || null }
+    const updates = { name: editForm.name.trim(), member1: editForm.member1.trim(), member2: editForm.member2.trim() }
     await supabase.from('crews').update(updates).eq('id', editing.id)
     setCrews(prev => prev.map(c => c.id === editing.id ? { ...c, ...updates } : c))
     setEditing(null); setSaving(false)
@@ -65,8 +65,8 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
 
   // ── Export CSV
   const exportDanseurs = () => {
-    const rows = [['Blasé 01', 'Blasé 02', 'Crew', 'Email']]
-    crews.forEach(c => rows.push([c.member1 || '', c.member2 || '', c.name || '', c.email || '']))
+    const rows = [['Blasé 01', 'Blasé 02', 'Crew']]
+    crews.forEach(c => rows.push([c.member1 || '', c.member2 || '', c.name || '']))
     const csv = '\uFEFF' + rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -125,10 +125,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
             <div style={{ marginBottom: 12 }}>
               <div className="label">Membre 2</div>
               <input className="input" value={editForm.member2} onChange={e => setEditForm(p => ({ ...p, member2: e.target.value }))} placeholder="prénom nom" />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <div className="label">Email</div>
-              <input className="input" type="email" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} placeholder="optionnel" />
             </div>
             <div className="flex-center" style={{ gap: 10 }}>
               <button className="btn btn-ghost" onClick={() => setEditing(null)}>Annuler</button>
@@ -313,14 +309,13 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
           </div>
           {filtered.length === 0 ? <div className="caption">Aucune équipe dans ce cypher.</div> : (
             <table className="tbl">
-              <thead><tr><th>Sticker</th><th>Crew</th><th>Membres</th><th>Email</th><th></th></tr></thead>
+              <thead><tr><th>Sticker</th><th>Crew</th><th>Membres</th><th></th></tr></thead>
               <tbody>
                 {filtered.map(c => (
                   <tr key={c.id}>
                     <td><span className={c.cypher === 'A' ? 'sticker-a' : 'sticker-b'}>{c.sticker}</span></td>
                     <td style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{crewDisplay(c)}</td>
                     <td className="muted" style={{ textTransform: 'lowercase' }}>{c.member1} &amp; {c.member2}</td>
-                    <td className="muted">{c.email}</td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button className="btn btn-ghost btn-sm" style={{ marginRight: 4 }} onClick={() => openEdit(c)}>✏️</button>
                       <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)', borderColor: 'var(--red-dim)' }} onClick={() => setConfirmDel(c)}>🗑</button>
