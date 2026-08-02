@@ -233,18 +233,18 @@ export default function Top16Tab({ battle, judges, crews }) {
               <button
                 className="btn btn-sm"
                 style={{
-                  background: scoringCypher === 'A' ? 'var(--red-dim)' : 'var(--surface2)',
-                  color: scoringCypher === 'A' ? 'var(--red)' : 'var(--text2)',
-                  border: `1px solid ${scoringCypher === 'A' ? 'var(--red-dim)' : 'var(--border2)'}`,
+                  background: scoringCypher === 'A' ? 'var(--surface)' : 'var(--surface2)',
+                  color: scoringCypher === 'A' ? 'var(--text)' : 'var(--text2)',
+                  border: `1px solid ${scoringCypher === 'A' ? 'var(--border)' : 'var(--border2)'}`,
                 }}
                 onClick={() => setScoringCypher('A')}
               >Cypher A</button>
               <button
                 className="btn btn-sm"
                 style={{
-                  background: scoringCypher === 'B' ? 'var(--surface)' : 'var(--surface2)',
-                  color: scoringCypher === 'B' ? 'var(--text)' : 'var(--text2)',
-                  border: `1px solid ${scoringCypher === 'B' ? 'var(--border)' : 'var(--border2)'}`,
+                  background: scoringCypher === 'B' ? 'var(--red-dim)' : 'var(--surface2)',
+                  color: scoringCypher === 'B' ? 'var(--red)' : 'var(--text2)',
+                  border: `1px solid ${scoringCypher === 'B' ? 'var(--red-dim)' : 'var(--border2)'}`,
                 }}
                 onClick={() => setScoringCypher('B')}
               >Cypher B</button>
