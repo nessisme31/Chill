@@ -159,13 +159,13 @@ select.input { cursor: pointer; }
 .tbl tr:hover td { background: var(--surface2); }
 
 /* ── BADGES & TAGS ────────────────────────────── */
-.badge-a    { background: #3d0000; color: #ff7070; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; border: 1px solid #7b0000; }
-.badge-b    { background: var(--surface2); color: var(--text2); padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; border: 1px solid var(--border2); }
+.badge-a    { background: var(--surface2); color: var(--text2); padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; border: 1px solid var(--border2); }
+.badge-b    { background: #3d0000; color: #ff7070; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; border: 1px solid #7b0000; }
 .badge-gold { background: var(--gold-dim); color: var(--gold); padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; border: 1px solid #7c5200; }
 .badge-score { background: var(--surface2); color: var(--text); padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; border: 1px solid var(--border2); }
 
-.sticker-a { font-weight: 800; color: var(--red); font-size: 15px; min-width: 36px; }
-.sticker-b { font-weight: 800; color: var(--text2); font-size: 15px; min-width: 36px; }
+.sticker-a { font-weight: 800; color: var(--text2); font-size: 15px; min-width: 36px; }
+.sticker-b { font-weight: 800; color: var(--red); font-size: 15px; min-width: 36px; }
 
 /* ── ALERTS ───────────────────────────────────── */
 .alert-warn { background: #2d1800; border: 1px solid #f39c12; border-radius: 8px; padding: 12px 16px; color: #f39c12; margin-bottom: 16px; font-size: 13px; }
