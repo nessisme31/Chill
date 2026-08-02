@@ -80,6 +80,12 @@ export default function Top16Tab({ battle, judges, crews }) {
     return { autoQualified: aboveCut, waitingList: atCut, spotsForWaiting: spots }
   }, [crewsRanked, regularSpotsNeeded])
 
+  // Équipes hors TOP 16 (éliminées)
+  const eliminatedCrews = useMemo(() => {
+    const qualifiedIds = new Set([...autoQualified.map(c => c.id), ...waitingList.map(c => c.id)])
+    return crewsRanked.filter(c => !qualifiedIds.has(c.id))
+  }, [crewsRanked, autoQualified, waitingList])
+
   // Les 16 finaux pour le bracket
   const final16 = useMemo(() => {
     const guestEntries = guests.map(g => ({
@@ -457,6 +463,38 @@ export default function Top16Tab({ battle, judges, crews }) {
                     </div>
                   )
                 })}
+              </>
+            )}
+
+            {/* Classement complet — équipes hors TOP 16 */}
+            {eliminatedCrews.length > 0 && (
+              <>
+                <div style={{
+                  margin: '20px 0 10px',
+                  paddingTop: 16,
+                  borderTop: '1px solid var(--border2)',
+                  fontSize: 11, fontWeight: 600, color: 'var(--text3)',
+                  textTransform: 'uppercase', letterSpacing: '1px',
+                }}>
+                  Hors TOP 16
+                </div>
+                {eliminatedCrews.map((c, i) => (
+                  <div key={c.id} style={{
+                    display: 'flex', alignItems: 'center',
+                    padding: '9px 0', borderBottom: '1px solid var(--border)',
+                    opacity: 0.35,
+                  }}>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text3)', width: 36, flexShrink: 0, textAlign: 'center' }}>
+                      #{guestCount + autoQualified.length + waitingList.length + i + 1}
+                    </div>
+                    <span className={c.cypher === 'A' ? 'sticker-a' : 'sticker-b'} style={{ marginRight: 4 }}>{c.sticker}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, textTransform: 'uppercase', color: 'var(--text3)' }}>{crewDisplay(c)}</div>
+                      <div className="caption" style={{ textTransform: 'lowercase' }}>{c.member1} &amp; {c.member2}</div>
+                    </div>
+                    <span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>{c.total} pts</span>
+                  </div>
+                ))}
               </>
             )}
           </div>
