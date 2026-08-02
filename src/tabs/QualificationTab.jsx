@@ -78,7 +78,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
   // ── Impression feuille juges
   const print = () => {
     const rows = filtered.map(c => `<tr>
-      <td style="font-weight:800;color:${cypher === 'A' ? '#c0392b' : '#555'};width:60px">${c.sticker}</td>
+      <td style="font-weight:800;color:${cypher === 'A' ? '#555' : '#c0392b'};width:60px">${c.sticker}</td>
       <td style="font-weight:600;text-transform:uppercase">${crewDisplay(c)}</td>
       <td style="color:#666;text-transform:lowercase">${c.member1} &amp; ${c.member2}</td>
       <td style="text-align:center;border:2px solid #ddd;font-size:20px;font-weight:800;min-width:60px">&nbsp;</td>
@@ -160,14 +160,14 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
           SECTION STATS — en haut
       ══════════════════════════════════════ */}
       <div className="grid2" style={{ marginBottom: 12 }}>
-        <div className="card" style={{ border: '1px solid #3d0000', textAlign: 'center', padding: '24px 16px' }}>
+        <div className="card" style={{ textAlign: 'center', padding: '24px 16px' }}>
           <div className="label" style={{ marginBottom: 8 }}>Cypher A</div>
-          <div style={{ fontSize: 56, fontWeight: 900, color: 'var(--red)', lineHeight: 1 }}>{cA}</div>
+          <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1 }}>{cA}</div>
           <div className="muted" style={{ marginTop: 6 }}>équipes</div>
         </div>
-        <div className="card" style={{ textAlign: 'center', padding: '24px 16px' }}>
+        <div className="card" style={{ border: '1px solid #3d0000', textAlign: 'center', padding: '24px 16px' }}>
           <div className="label" style={{ marginBottom: 8 }}>Cypher B</div>
-          <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1 }}>{cB}</div>
+          <div style={{ fontSize: 56, fontWeight: 900, color: 'var(--red)', lineHeight: 1 }}>{cB}</div>
           <div className="muted" style={{ marginTop: 6 }}>équipes</div>
         </div>
       </div>
@@ -261,9 +261,9 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
               <div className="flex" style={{ gap: 6 }}>
                 {['A', 'B'].map(v => (
                   <button key={v} className="btn btn-sm" style={{
-                    background: assignments[j.id] === v ? (v === 'A' ? 'var(--red-dim)' : 'var(--surface2)') : 'transparent',
-                    color: assignments[j.id] === v ? (v === 'A' ? 'var(--red)' : 'var(--text)') : 'var(--text3)',
-                    border: `1px solid ${assignments[j.id] === v ? (v === 'A' ? 'var(--red-dim)' : 'var(--border2)') : 'var(--border2)'}`,
+                    background: assignments[j.id] === v ? (v === 'A' ? 'var(--surface)' : 'var(--red-dim)') : 'transparent',
+                    color: assignments[j.id] === v ? (v === 'A' ? 'var(--text)' : 'var(--red)') : 'var(--text3)',
+                    border: `1px solid ${assignments[j.id] === v ? (v === 'A' ? 'var(--border)' : 'var(--red-dim)') : 'var(--border2)'}`,
                   }} onClick={() => assignJudge(j.id, v)}>Cypher {v}</button>
                 ))}
               </div>
@@ -277,9 +277,9 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
         <button
           className="btn btn-sm"
           style={{
-            background: cypher === 'A' ? 'var(--red-dim)' : 'var(--surface2)',
-            color: cypher === 'A' ? 'var(--red)' : 'var(--text2)',
-            border: `1px solid ${cypher === 'A' ? 'var(--red-dim)' : 'var(--border2)'}`,
+            background: cypher === 'A' ? 'var(--surface)' : 'var(--surface2)',
+            color: cypher === 'A' ? 'var(--text)' : 'var(--text2)',
+            border: `1px solid ${cypher === 'A' ? 'var(--border)' : 'var(--border2)'}`,
           }}
           onClick={() => setCypher('A')}
         >
@@ -288,9 +288,9 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
         <button
           className="btn btn-sm"
           style={{
-            background: cypher === 'B' ? 'var(--surface)' : 'var(--surface2)',
-            color: cypher === 'B' ? 'var(--text)' : 'var(--text2)',
-            border: `1px solid ${cypher === 'B' ? 'var(--border)' : 'var(--border2)'}`,
+            background: cypher === 'B' ? 'var(--red-dim)' : 'var(--surface2)',
+            color: cypher === 'B' ? 'var(--red)' : 'var(--text2)',
+            border: `1px solid ${cypher === 'B' ? 'var(--red-dim)' : 'var(--border2)'}`,
           }}
           onClick={() => setCypher('B')}
         >
@@ -304,7 +304,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
           <div className="flex-between" style={{ marginBottom: 16 }}>
             <div>
               <span className="muted">Cypher </span>
-              <strong style={{ color: cypher === 'A' ? 'var(--red)' : 'var(--text)' }}>{cypher}</strong>
+              <strong style={{ color: cypher === 'A' ? 'var(--text)' : 'var(--red)' }}>{cypher}</strong>
               {isAssigned && (
                 <span className="muted"> — Juges : <strong>{assignedJudges.map(j => j.name).join(', ')}</strong></span>
               )}
