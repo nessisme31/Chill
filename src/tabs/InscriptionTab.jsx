@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export default function InscriptionTab({ battle, crews, setCrews }) {
-  const [form,    setForm]    = useState({ name: '', m1: '', m2: '', email: '' })
+  const [form,    setForm]    = useState({ name: '', m1: '', m2: '' })
   const [pending, setPending] = useState(null)
   const [saving,  setSaving]  = useState(false)
 
@@ -12,7 +12,7 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
   const f = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
   const preview = (cypher) => {
-    if (!form.name.trim() || !form.m1.trim() || !form.m2.trim() || !form.email.trim()) {
+    if (!form.name.trim() || !form.m1.trim() || !form.m2.trim()) {
       alert('Remplissez tous les champs')
       return
     }
@@ -30,7 +30,6 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
         name:    pending.name.trim(),
         member1: pending.m1.trim(),
         member2: pending.m2.trim(),
-        email:   pending.email.trim(),
         cypher:  pending.cypher,
         sticker: pending.sticker,
       })
@@ -64,8 +63,7 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
             {pending.sticker}
           </div>
           <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 4 }}>{pending.name}</div>
-          <div className="muted" style={{ marginBottom: 4 }}>{pending.m1} &amp; {pending.m2}</div>
-          <div className="caption" style={{ marginBottom: 28 }}>{pending.email}</div>
+          <div className="muted" style={{ marginBottom: 28 }}>{pending.m1} &amp; {pending.m2}</div>
           <div className="flex-center" style={{ gap: 10 }}>
             <button className="btn btn-ghost" onClick={() => setPending(null)}>← Modifier</button>
             <button className="btn btn-white" onClick={confirm} disabled={saving}>
@@ -94,10 +92,6 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
           <div style={{ marginBottom: 12 }}>
             <div className="label">Membre 2</div>
             <input className="input" value={form.m2} onChange={e => f('m2', e.target.value)} placeholder="Prénom Nom" />
-          </div>
-          <div style={{ marginBottom: 20 }}>
-            <div className="label">Email</div>
-            <input className="input" type="email" value={form.email} onChange={e => f('email', e.target.value)} placeholder="crew@exemple.com" />
           </div>
           <div className="label" style={{ marginBottom: 8 }}>Choisir le cypher</div>
           <div className="grid2" style={{ gap: 8 }}>
