@@ -161,6 +161,99 @@ export default function BracketTab({ battle, crews }) {
   const allR1Filled = Object.values(bracket[1]).every(m => m.team1 && m.team2)
   const champion = bracket[4][1].winner ? bracket[4][1][bracket[4][1].winner] : null
 
+  // ── Impression bracket A4 paysage
+  const printBracket = () => {
+    const S = 34, M = 69, G1 = 8, G2 = 77
+    const PT2 = Math.round((M + G1) / 2)       // 38
+    const PT3 = Math.round(PT2 + (M + G2) / 2) // 113
+    const CW = 138, CONN = 11, COL = CW + CONN * 2
+
+    const teamRow = (t, isW, isL) => {
+      if (!t) return `<div class="slot"><span class="name" style="color:#ccc">—</span></div>`
+      return `<div class="slot${isW ? ' win' : isL ? ' los' : ''}">
+        ${t.sticker ? `<span class="stk">${t.sticker}</span>` : ''}
+        <span class="name">${t.name}${t.total != null ? ` <span class="pts">${t.total}p</span>` : ''}</span>
+        ${isW ? '<span class="tick">✓</span>' : ''}
+      </div>`
+    }
+
+    const card = (round, match, side, isF = false) => {
+      const m = bracket[round]?.[match]
+      if (!m) return ''
+      const t1W = m.winner === 'team1', t2W = m.winner === 'team2'
+      const hConn = side === 'left'
+        ? `<div class="ch" style="right:${-CONN}px;top:${S/2}px;width:${CONN}px"></div>`
+        : side === 'right'
+          ? `<div class="ch" style="left:${-CONN}px;top:${S/2}px;width:${CONN}px"></div>`
+          : ''
+      return `<div style="position:relative">
+        <div class="match${isF ? ' final' : ''}">
+          ${teamRow(m.team1, t1W, t2W)}
+          <div class="div"></div>
+          ${teamRow(m.team2, t2W, t1W)}
+        </div>${hConn}</div>`
+    }
+
+    const pair = (round, mA, mB, side, gap) => {
+      const vH = M + gap
+      const vc = side === 'left'
+        ? `<div class="cv" style="right:${-CONN}px;top:${S/2}px;height:${vH}px"></div>`
+        : `<div class="cv" style="left:${-CONN}px;top:${S/2}px;height:${vH}px"></div>`
+      return `<div style="position:relative">${card(round,mA,side)}<div style="height:${gap}px"></div>${card(round,mB,side)}${vc}</div>`
+    }
+
+    const hdrs = ['TOP 16','TOP 8','Demi-finales','⚡ Finale ⚡','Demi-finales','TOP 8','TOP 16']
+    const hRow = hdrs.map(h => `<div style="width:${COL}px;flex-shrink:0;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#666">${h}</div>`).join('')
+
+    const cols = [
+      `<div style="width:${COL}px;flex-shrink:0;padding:0 ${CONN}px">${pair(1,1,2,'left',G1)}<div style="height:${G1}px"></div>${pair(1,3,4,'left',G1)}</div>`,
+      `<div style="width:${COL}px;flex-shrink:0;padding:${PT2}px ${CONN}px 0">${pair(2,1,2,'left',G2)}</div>`,
+      `<div style="width:${COL}px;flex-shrink:0;padding:${PT3}px ${CONN}px 0">${card(3,1,'left')}</div>`,
+      `<div style="width:${COL}px;flex-shrink:0;padding:${PT3}px ${CONN}px 0">${card(4,1,'none',true)}</div>`,
+      `<div style="width:${COL}px;flex-shrink:0;padding:${PT3}px ${CONN}px 0">${card(3,2,'right')}</div>`,
+      `<div style="width:${COL}px;flex-shrink:0;padding:${PT2}px ${CONN}px 0">${pair(2,3,4,'right',G2)}</div>`,
+      `<div style="width:${COL}px;flex-shrink:0;padding:0 ${CONN}px">${pair(1,5,6,'right',G1)}<div style="height:${G1}px"></div>${pair(1,7,8,'right',G1)}</div>`,
+    ].join('')
+
+    const champ = champion ? `<div style="text-align:center;margin-top:12px;padding:6px;background:#fffbea;border:2px solid gold;border-radius:4px;font-weight:900;font-size:13px;text-transform:uppercase">🏆 ${champion.name}</div>` : ''
+
+    const html = `<!DOCTYPE html><html><head>
+      <title>${battle.name} — Bracket</title>
+      <style>
+        @page { size: A4 landscape; margin: 8mm; }
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; margin: 0; }
+        .match { background: #fff; border: 1px solid #ccc; border-radius: 3px; overflow: hidden; width: ${CW}px; }
+        .match.final { border: 2px solid goldenrod; }
+        .slot { height: ${S}px; display: flex; align-items: center; padding: 0 5px; gap: 3px; font-size: 9px; }
+        .slot.win { background: #e8f5e9; }
+        .slot.los { opacity: 0.38; text-decoration: line-through; }
+        .name { flex: 1; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-transform: uppercase; }
+        .pts { font-size: 8px; color: #999; font-weight: 400; }
+        .stk { font-size: 8px; font-weight: 800; color: #777; min-width: 20px; flex-shrink: 0; }
+        .tick { color: #2e7d32; font-weight: 900; font-size: 11px; flex-shrink: 0; }
+        .div { height: 1px; background: #e0e0e0; }
+        .ch { position: absolute; height: 1px; background: #aaa; }
+        .cv { position: absolute; width: 1px; background: #aaa; }
+        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+      </style>
+    </head><body>
+      <div style="text-align:center;margin-bottom:8px">
+        <div style="font-size:15px;font-weight:900;text-transform:uppercase">${battle.name}</div>
+        <div style="font-size:9px;color:#777;margin-top:2px">TOP 16 Knock-Out — ${new Date().toLocaleDateString('fr-FR')}</div>
+      </div>
+      <div style="display:flex;margin-bottom:5px">${hRow}</div>
+      <div style="display:flex;align-items:flex-start">${cols}</div>
+      ${champ}
+    </body></html>`
+
+    const w = window.open('', '_blank')
+    if (!w) { alert('Autorisez les popups pour imprimer'); return }
+    w.document.write(html)
+    w.document.close()
+    w.print()
+  }
+
   // ── Rendu d'un slot équipe
   const renderSlot = (round, match, slotKey) => {
     const m = bracket[round][match]
@@ -334,6 +427,11 @@ export default function BracketTab({ battle, crews }) {
           {champion.sticker && <div style={{ color: 'var(--gold)', opacity: .6, marginTop: 4, fontSize: 13 }}>{champion.sticker}</div>}
         </div>
       )}
+
+      {/* ── Bouton impression ── */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <button className="btn btn-ghost btn-sm" onClick={printBracket}>🖨 Imprimer le bracket</button>
+      </div>
 
       {/* ══════════════════════════════════════
           LAYOUT BRACKET EN ARBRE SYMÉTRIQUE
