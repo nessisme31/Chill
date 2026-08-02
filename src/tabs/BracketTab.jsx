@@ -305,7 +305,7 @@ function TeamSlot({ team, isWinner, isLoser, canPlace, canDeclare, onPlace, onDe
       {team?.sticker && (
         <span style={{
           fontSize: 11, fontWeight: 800,
-          color: team.cypher === 'A' ? 'var(--red)' : 'var(--text2)',
+          color: team.cypher === 'A' ? 'var(--text2)' : 'var(--red)',
           minWidth: 28, textDecoration: isLoser ? 'line-through' : 'none',
         }}>
           {team.sticker}
