@@ -114,11 +114,10 @@ export default function BracketTab({ battle, crews }) {
       position:     slot === 'team1' ? 1 : 2,
       crew_id:      team.isGuest ? null : team.id,
       team_name:    team.name,
-      sticker:      team.sticker      || null,
-      cypher:       team.cypher       || null,
-      is_guest:     team.isGuest      || false,
+      sticker:      team.sticker  || null,
+      cypher:       team.cypher   || null,
+      is_guest:     team.isGuest  || false,
       is_winner:    false,
-      country_code: team.country_code || null,
     }, { onConflict: 'battle_id,round,match_number,position' })
   }
 
@@ -142,11 +141,10 @@ export default function BracketTab({ battle, crews }) {
         position:     nextSlot === 'team1' ? 1 : 2,
         crew_id:      winner.isGuest ? null : winner.id,
         team_name:    winner.name,
-        sticker:      winner.sticker      || null,
-        cypher:       winner.cypher       || null,
-        is_guest:     winner.isGuest      || false,
+        sticker:      winner.sticker  || null,
+        cypher:       winner.cypher   || null,
+        is_guest:     winner.isGuest  || false,
         is_winner:    false,
-        country_code: winner.country_code || null,
       }, { onConflict: 'battle_id,round,match_number,position' })
     }
 
