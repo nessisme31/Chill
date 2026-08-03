@@ -123,7 +123,15 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
 
   function makePairs(arr) {
     const p = [];
-    for (let i = 0; i < arr.length; i += 2) p.push([arr[i], arr[i+1] || null]);
+    if (arr.length === 0) return p;
+    if (arr.length % 2 === 0) {
+      // Nombre pair : paires normales
+      for (let i = 0; i < arr.length; i += 2) p.push([arr[i], arr[i+1]]);
+    } else {
+      // Nombre impair : paires normales sauf les 3 dernières = battle à 3
+      for (let i = 0; i < arr.length - 3; i += 2) p.push([arr[i], arr[i+1]]);
+      p.push([arr[arr.length-3], arr[arr.length-2], arr[arr.length-1]]);
+    }
     return p;
   }
   const pairsA = makePairs(crewsA);
@@ -146,13 +154,16 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
       el.innerHTML = hint + '<div class="end-msg">✓ Fin du<br>Cypher ' + side + '</div>';
       return;
     }
-    const [t1, t2] = pairs[idx];
+    const match = pairs[idx];
+    const [t1, t2, t3] = match;
+    const isTrio = match.length === 3;
     el.innerHTML = hint +
-      '<div class="cypher-label">CYPHER ' + side + '</div>' +
+      '<div class="cypher-label">CYPHER ' + side + (isTrio ? ' — BATTLE À 3' : '') + '</div>' +
       '<div class="match-box">' +
         teamHTML(t1, side) +
         '<div class="vs">VS</div>' +
         teamHTML(t2, side) +
+        (isTrio ? '<div class="vs">VS</div>' + teamHTML(t3, side) : '') +
       '</div>' +
       '<div class="nav" onclick="event.stopPropagation()">' +
         '<button class="btn" onclick="prev' + side + '()">← Précédent</button>' +
