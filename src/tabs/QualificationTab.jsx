@@ -63,6 +63,130 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
     setConfirmDel(null); setDeleting(false)
   }
 
+  // ── Mode affichage projection (nouvel onglet)
+  const openDisplayMode = () => {
+    const sort = (arr) => [...arr].sort((a, b) => (parseInt(a.sticker?.slice(1)) || 0) - (parseInt(b.sticker?.slice(1)) || 0))
+    const cA = sort(crews.filter(c => c.cypher === 'A'))
+    const cB = sort(crews.filter(c => c.cypher === 'B'))
+
+    const html = `<!DOCTYPE html><html lang="fr"><head>
+<meta charset="UTF-8">
+<title>${battle.name} — Qualifications</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;color:#fff;font-family:'Arial Black',Arial,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  header{display:flex;justify-content:center;align-items:center;gap:16px;padding:14px 24px;border-bottom:2px solid #111;flex-shrink:0}
+  header h1{font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:3px}
+  header .sub{font-size:11px;color:#444;letter-spacing:2px}
+  .arena{display:flex;flex:1;overflow:hidden}
+  .side{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;position:relative;cursor:pointer;user-select:none}
+  .side.A{border-right:2px solid #1a1a1a}
+  .cypher-label{font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:28px;padding:4px 14px;border-radius:20px}
+  .side.A .cypher-label{color:#888;border:1px solid #222}
+  .side.B .cypher-label{color:#ff3333;border:1px solid #3d0000}
+  .match-box{text-align:center;width:100%}
+  .team{margin:8px 0}
+  .sticker{font-size:16px;font-weight:900;letter-spacing:2px;margin-bottom:2px}
+  .side.A .sticker{color:#555}
+  .side.B .sticker{color:#7b0000}
+  .crew-name{font-size:clamp(28px,4vw,64px);font-weight:900;text-transform:uppercase;line-height:1.1;letter-spacing:1px}
+  .side.A .crew-name{color:#fff}
+  .side.B .crew-name{color:#ff3333}
+  .vs{font-size:clamp(14px,2vw,28px);color:#2a2a2a;font-weight:900;margin:20px 0;letter-spacing:4px}
+  .bye{font-size:clamp(18px,3vw,40px);color:#2a2a2a;font-weight:900;text-transform:uppercase}
+  .end-msg{font-size:clamp(20px,3vw,44px);color:#333;font-weight:900;text-transform:uppercase;text-align:center;letter-spacing:2px}
+  .nav{display:flex;gap:12px;margin-top:28px;z-index:10}
+  .btn{background:#111;color:#888;border:1px solid #222;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px;letter-spacing:1px;transition:all .15s}
+  .btn:hover{background:#1a1a1a;color:#ccc;border-color:#333}
+  .side.B .btn:hover{color:#ff3333;border-color:#3d0000}
+  .counter{font-size:11px;color:#2a2a2a;margin-top:12px;letter-spacing:1px}
+  .hint{position:absolute;bottom:12px;font-size:10px;color:#1a1a1a;letter-spacing:1px}
+</style>
+</head><body>
+<header>
+  <div>
+    <h1>${battle.name}</h1>
+    <div class="sub">QUALIFICATIONS EN COURS</div>
+  </div>
+</header>
+<div class="arena">
+  <div class="side A" id="sideA" onclick="advanceA()">
+    <div class="hint">cliquer = suivant</div>
+  </div>
+  <div class="side B" id="sideB" onclick="advanceB()">
+    <div class="hint">cliquer = suivant</div>
+  </div>
+</div>
+<script>
+  const crewsA = ${JSON.stringify(cA)};
+  const crewsB = ${JSON.stringify(cB)};
+
+  function makePairs(arr) {
+    const p = [];
+    for (let i = 0; i < arr.length; i += 2) p.push([arr[i], arr[i+1] || null]);
+    return p;
+  }
+  const pairsA = makePairs(crewsA);
+  const pairsB = makePairs(crewsB);
+  let iA = 0, iB = 0;
+
+  function teamHTML(t, side) {
+    if (!t) return '<div class="bye">BYE</div>';
+    return '<div class="team"><div class="sticker">' + t.sticker + '</div><div class="crew-name">' + t.name + '</div></div>';
+  }
+
+  function renderSide(side, pairs, idx) {
+    const el = document.getElementById('side' + side);
+    const hint = '<div class="hint">cliquer = suivant</div>';
+    if (pairs.length === 0) {
+      el.innerHTML = hint + '<div class="end-msg">Aucune équipe<br>dans le Cypher ' + side + '</div>';
+      return;
+    }
+    if (idx >= pairs.length) {
+      el.innerHTML = hint + '<div class="end-msg">✓ Fin du<br>Cypher ' + side + '</div>';
+      return;
+    }
+    const [t1, t2] = pairs[idx];
+    el.innerHTML = hint +
+      '<div class="cypher-label">CYPHER ' + side + '</div>' +
+      '<div class="match-box">' +
+        teamHTML(t1, side) +
+        '<div class="vs">VS</div>' +
+        teamHTML(t2, side) +
+      '</div>' +
+      '<div class="nav" onclick="event.stopPropagation()">' +
+        '<button class="btn" onclick="prev' + side + '()">← Précédent</button>' +
+        '<button class="btn" onclick="next' + side + '()">Suivant →</button>' +
+      '</div>' +
+      '<div class="counter">' + (idx + 1) + ' / ' + pairs.length + '</div>';
+  }
+
+  function nextA() { if (iA < pairsA.length) iA++; renderSide('A', pairsA, iA); }
+  function prevA() { if (iA > 0) iA--; renderSide('A', pairsA, iA); }
+  function nextB() { if (iB < pairsB.length) iB++; renderSide('B', pairsB, iB); }
+  function prevB() { if (iB > 0) iB--; renderSide('B', pairsB, iB); }
+  function advanceA() { nextA(); }
+  function advanceB() { nextB(); }
+
+  // Raccourcis clavier : ← → pour A, [ ] pour B
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') nextA();
+    else if (e.key === 'ArrowLeft') prevA();
+    else if (e.key === ']' || e.key === 'End') nextB();
+    else if (e.key === '[' || e.key === 'Home') prevB();
+  });
+
+  renderSide('A', pairsA, 0);
+  renderSide('B', pairsB, 0);
+</script>
+</body></html>`
+
+    const w = window.open('', '_blank')
+    if (!w) { alert('Autorisez les popups pour ouvrir le mode affichage'); return }
+    w.document.write(html)
+    w.document.close()
+  }
+
   // ── Export CSV
   const exportDanseurs = () => {
     const rows = [['Blasé 01', 'Blasé 02', 'Crew']]
@@ -239,6 +363,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
         </button>
 
         <div className="flex" style={{ gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={openDisplayMode}>🖥 Mode affichage</button>
           <button className="btn btn-ghost btn-sm" onClick={exportDanseurs}>⬇ Danseurs.csv</button>
           <button className="btn btn-ghost btn-sm" onClick={print}>🖨 Imprimer feuille</button>
         </div>
