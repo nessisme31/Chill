@@ -1,24 +1,52 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { crewDisplay } from '../lib/countries'
 
-export default function QualificationTab({ battle, judges, djs, speakers, crews, setCrews }) {
-  const [cypher,      setCypher]      = useState('A')
-  const [assignments, setAssignments] = useState({})
-  const [view,        setView]        = useState('list')
-  const [editing,     setEditing]     = useState(null)
-  const [editForm,    setEditForm]    = useState({})
-  const [confirmDel,  setConfirmDel]  = useState(null)
-  const [saving,      setSaving]      = useState(false)
-  const [deleting,    setDeleting]    = useState(false)
+// Créer des paires de battles (impair → trio final)
+function makePairs(arr) {
+  if (arr.length === 0) return []
+  const p = []
+  if (arr.length % 2 === 0) {
+    for (let i = 0; i < arr.length; i += 2) p.push([arr[i], arr[i+1]])
+  } else {
+    for (let i = 0; i < arr.length - 3; i += 2) p.push([arr[i], arr[i+1]])
+    if (arr.length >= 3)
+      p.push([arr[arr.length-3], arr[arr.length-2], arr[arr.length-1]])
+    else if (arr.length === 1)
+      p.push([arr[0]])
+  }
+  return p
+}
 
-  const filtered = crews.filter(c => c.cypher === cypher)
+function sortByCypher(crews, cypher) {
+  return [...crews]
+    .filter(c => c.cypher === cypher)
+    .sort((a, b) => (parseInt(a.sticker?.slice(1)) || 0) - (parseInt(b.sticker?.slice(1)) || 0))
+}
+
+export default function QualificationTab({ battle, judges, djs, speakers, crews }) {
+  const [assignments, setAssignments] = useState({})
+  const [showAssign,  setShowAssign]  = useState(false)
+  const [idxA,        setIdxA]        = useState(0)
+  const [idxB,        setIdxB]        = useState(0)
+  const channelRef = useRef(null)
+
   const cA = crews.filter(c => c.cypher === 'A').length
   const cB = crews.filter(c => c.cypher === 'B').length
   const diff = Math.abs(cA - cB)
   const weaker = cA < cB ? 'A' : 'B'
 
+  // Paires de battles
+  const pairsA = useMemo(() => makePairs(sortByCypher(crews, 'A')), [crews])
+  const pairsB = useMemo(() => makePairs(sortByCypher(crews, 'B')), [crews])
+
   useEffect(() => { loadAssignments() }, [battle.id])
+
+  // BroadcastChannel pour synchroniser avec la page projetée
+  useEffect(() => {
+    channelRef.current = new BroadcastChannel('citc_qualif_' + battle.id)
+    return () => channelRef.current?.close()
+  }, [battle.id])
 
   const loadAssignments = async () => {
     const { data } = await supabase.from('judges').select('id, cypher').eq('battle_id', battle.id)
@@ -34,168 +62,17 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
     await supabase.from('judges').update({ cypher: val }).eq('id', judgeId)
   }
 
-  const assignedJudges = judges.filter(j => assignments[j.id] === cypher)
-  const isAssigned = assignedJudges.length > 0
-
-  // ── Édition
-  const openEdit = (crew) => {
-    setEditing(crew)
-    setEditForm({ name: crew.name, member1: crew.member1, member2: crew.member2 })
-  }
-
-  const saveEdit = async () => {
-    if (!editForm.name.trim() || !editForm.member1.trim() || !editForm.member2.trim()) {
-      alert('Nom du crew et membres obligatoires'); return
-    }
-    setSaving(true)
-    const updates = { name: editForm.name.trim(), member1: editForm.member1.trim(), member2: editForm.member2.trim() }
-    await supabase.from('crews').update(updates).eq('id', editing.id)
-    setCrews(prev => prev.map(c => c.id === editing.id ? { ...c, ...updates } : c))
-    setEditing(null); setSaving(false)
-  }
-
-  // ── Suppression
-  const deleteCrew = async () => {
-    if (!confirmDel) return
-    setDeleting(true)
-    await supabase.from('crews').delete().eq('id', confirmDel.id)
-    setCrews(prev => prev.filter(c => c.id !== confirmDel.id))
-    setConfirmDel(null); setDeleting(false)
-  }
-
-  // ── Mode affichage projection (nouvel onglet)
-  const openDisplayMode = () => {
-    const sort = (arr) => [...arr].sort((a, b) => (parseInt(a.sticker?.slice(1)) || 0) - (parseInt(b.sticker?.slice(1)) || 0))
-    const cA = sort(crews.filter(c => c.cypher === 'A'))
-    const cB = sort(crews.filter(c => c.cypher === 'B'))
-
-    const html = `<!DOCTYPE html><html lang="fr"><head>
-<meta charset="UTF-8">
-<title>${battle.name} — Qualifications</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#000;color:#fff;font-family:'Arial Black',Arial,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-  header{display:flex;justify-content:center;align-items:center;gap:16px;padding:14px 24px;border-bottom:2px solid #111;flex-shrink:0}
-  header h1{font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:3px}
-  header .sub{font-size:11px;color:#444;letter-spacing:2px}
-  .arena{display:flex;flex:1;overflow:hidden}
-  .side{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;position:relative;cursor:pointer;user-select:none}
-  .side.A{border-right:2px solid #1a1a1a}
-  .cypher-label{font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:28px;padding:4px 14px;border-radius:20px}
-  .side.A .cypher-label{color:#888;border:1px solid #222}
-  .side.B .cypher-label{color:#ff3333;border:1px solid #3d0000}
-  .match-box{text-align:center;width:100%}
-  .team{margin:8px 0}
-  .sticker{font-size:16px;font-weight:900;letter-spacing:2px;margin-bottom:2px}
-  .side.A .sticker{color:#555}
-  .side.B .sticker{color:#7b0000}
-  .crew-name{font-size:clamp(28px,4vw,64px);font-weight:900;text-transform:uppercase;line-height:1.1;letter-spacing:1px}
-  .side.A .crew-name{color:#fff}
-  .side.B .crew-name{color:#ff3333}
-  .vs{font-size:clamp(14px,2vw,28px);color:#2a2a2a;font-weight:900;margin:20px 0;letter-spacing:4px}
-  .bye{font-size:clamp(18px,3vw,40px);color:#2a2a2a;font-weight:900;text-transform:uppercase}
-  .end-msg{font-size:clamp(20px,3vw,44px);color:#333;font-weight:900;text-transform:uppercase;text-align:center;letter-spacing:2px}
-  .nav{display:flex;gap:12px;margin-top:28px;z-index:10}
-  .btn{background:#111;color:#888;border:1px solid #222;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px;letter-spacing:1px;transition:all .15s}
-  .btn:hover{background:#1a1a1a;color:#ccc;border-color:#333}
-  .side.B .btn:hover{color:#ff3333;border-color:#3d0000}
-  .counter{font-size:11px;color:#2a2a2a;margin-top:12px;letter-spacing:1px}
-  .hint{position:absolute;bottom:12px;font-size:10px;color:#1a1a1a;letter-spacing:1px}
-</style>
-</head><body>
-<header>
-  <div>
-    <h1>${battle.name}</h1>
-    <div class="sub">QUALIFICATIONS EN COURS</div>
-  </div>
-</header>
-<div class="arena">
-  <div class="side A" id="sideA" onclick="advanceA()">
-    <div class="hint">cliquer = suivant</div>
-  </div>
-  <div class="side B" id="sideB" onclick="advanceB()">
-    <div class="hint">cliquer = suivant</div>
-  </div>
-</div>
-<script>
-  const crewsA = ${JSON.stringify(cA)};
-  const crewsB = ${JSON.stringify(cB)};
-
-  function makePairs(arr) {
-    const p = [];
-    if (arr.length === 0) return p;
-    if (arr.length % 2 === 0) {
-      // Nombre pair : paires normales
-      for (let i = 0; i < arr.length; i += 2) p.push([arr[i], arr[i+1]]);
+  // Navigation battles (sync avec page projetée)
+  const navigate = (side, delta) => {
+    if (side === 'A') {
+      const newIdx = Math.max(0, Math.min(pairsA.length, idxA + delta))
+      setIdxA(newIdx)
+      channelRef.current?.postMessage({ idxA: newIdx, idxB })
     } else {
-      // Nombre impair : paires normales sauf les 3 dernières = battle à 3
-      for (let i = 0; i < arr.length - 3; i += 2) p.push([arr[i], arr[i+1]]);
-      p.push([arr[arr.length-3], arr[arr.length-2], arr[arr.length-1]]);
+      const newIdx = Math.max(0, Math.min(pairsB.length, idxB + delta))
+      setIdxB(newIdx)
+      channelRef.current?.postMessage({ idxA, idxB: newIdx })
     }
-    return p;
-  }
-  const pairsA = makePairs(crewsA);
-  const pairsB = makePairs(crewsB);
-  let iA = 0, iB = 0;
-
-  function teamHTML(t, side) {
-    if (!t) return '<div class="bye">BYE</div>';
-    return '<div class="team"><div class="sticker">' + t.sticker + '</div><div class="crew-name">' + t.name + '</div></div>';
-  }
-
-  function renderSide(side, pairs, idx) {
-    const el = document.getElementById('side' + side);
-    const hint = '<div class="hint">cliquer = suivant</div>';
-    if (pairs.length === 0) {
-      el.innerHTML = hint + '<div class="end-msg">Aucune équipe<br>dans le Cypher ' + side + '</div>';
-      return;
-    }
-    if (idx >= pairs.length) {
-      el.innerHTML = hint + '<div class="end-msg">✓ Fin du<br>Cypher ' + side + '</div>';
-      return;
-    }
-    const match = pairs[idx];
-    const [t1, t2, t3] = match;
-    const isTrio = match.length === 3;
-    el.innerHTML = hint +
-      '<div class="cypher-label">CYPHER ' + side + (isTrio ? ' — BATTLE À 3' : '') + '</div>' +
-      '<div class="match-box">' +
-        teamHTML(t1, side) +
-        '<div class="vs">VS</div>' +
-        teamHTML(t2, side) +
-        (isTrio ? '<div class="vs">VS</div>' + teamHTML(t3, side) : '') +
-      '</div>' +
-      '<div class="nav" onclick="event.stopPropagation()">' +
-        '<button class="btn" onclick="prev' + side + '()">← Précédent</button>' +
-        '<button class="btn" onclick="next' + side + '()">Suivant →</button>' +
-      '</div>' +
-      '<div class="counter">' + (idx + 1) + ' / ' + pairs.length + '</div>';
-  }
-
-  function nextA() { if (iA < pairsA.length) iA++; renderSide('A', pairsA, iA); }
-  function prevA() { if (iA > 0) iA--; renderSide('A', pairsA, iA); }
-  function nextB() { if (iB < pairsB.length) iB++; renderSide('B', pairsB, iB); }
-  function prevB() { if (iB > 0) iB--; renderSide('B', pairsB, iB); }
-  function advanceA() { nextA(); }
-  function advanceB() { nextB(); }
-
-  // Raccourcis clavier : ← → pour A, [ ] pour B
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight') nextA();
-    else if (e.key === 'ArrowLeft') prevA();
-    else if (e.key === ']' || e.key === 'End') nextB();
-    else if (e.key === '[' || e.key === 'Home') prevB();
-  });
-
-  renderSide('A', pairsA, 0);
-  renderSide('B', pairsB, 0);
-</script>
-</body></html>`
-
-    const w = window.open('', '_blank')
-    if (!w) { alert('Autorisez les popups pour ouvrir le mode affichage'); return }
-    w.document.write(html)
-    w.document.close()
   }
 
   // ── Export CSV
@@ -210,86 +87,159 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
     URL.revokeObjectURL(url)
   }
 
-  // ── Impression feuille juges
-  const print = () => {
-    const rows = filtered.map(c => `<tr>
-      <td style="font-weight:800;color:${cypher === 'A' ? '#555' : '#c0392b'};width:60px">${c.sticker}</td>
-      <td style="font-weight:600;text-transform:uppercase">${crewDisplay(c)}</td>
-      <td style="color:#666;text-transform:lowercase">${c.member1} &amp; ${c.member2}</td>
-      <td style="text-align:center;border:2px solid #ddd;font-size:20px;font-weight:800;min-width:60px">&nbsp;</td>
-      <td style="border:1px solid #ddd;min-width:200px">&nbsp;</td>
-    </tr>`).join('')
-    const judgeNames = assignedJudges.length > 0 ? assignedJudges.map(j => j.name).join(', ') : '—'
+  // ── Impression feuille juges (les deux cyphers, page-break entre)
+  const printSheets = () => {
+    const sheet = (cypher) => {
+      const filtered = crews.filter(c => c.cypher === cypher)
+      const assignedJudges = judges.filter(j => assignments[j.id] === cypher)
+      const judgeNames = assignedJudges.length > 0 ? assignedJudges.map(j => j.name).join(', ') : '—'
+      const rows = filtered.map(c => `<tr>
+        <td style="font-weight:800;color:${cypher === 'A' ? '#555' : '#c0392b'};width:60px">${c.sticker}</td>
+        <td style="font-weight:600;text-transform:uppercase">${crewDisplay(c)}</td>
+        <td style="color:#666;text-transform:lowercase">${c.member1} &amp; ${c.member2}</td>
+        <td style="text-align:center;border:2px solid #ddd;font-size:20px;font-weight:800;min-width:60px">&nbsp;</td>
+        <td style="border:1px solid #ddd;min-width:200px">&nbsp;</td>
+      </tr>`).join('')
+      return `<div>
+        <h2>${battle.name} — Cypher ${cypher}</h2>
+        <p>Juges : <strong>${judgeNames}</strong> &nbsp;|&nbsp; ${new Date().toLocaleDateString('fr-FR')} &nbsp;|&nbsp; ${filtered.length} équipe(s)</p>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;text-align:left">Sticker</th>
+            <th style="background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;text-align:left">Crew</th>
+            <th style="background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;text-align:left">Membres</th>
+            <th style="background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;text-align:center">Score</th>
+            <th style="background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;text-align:left">Commentaire</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`
+    }
     const w = window.open('', '_blank')
-    if (!w) { alert('Autorisez les popups pour imprimer'); return }
-    w.document.write(`<!DOCTYPE html><html><head><title>Feuille — Cypher ${cypher}</title>
-      <style>body{font-family:Arial,sans-serif;padding:28px;color:#000}h2{margin-bottom:4px}p{color:#666;margin-bottom:20px;font-size:13px}table{width:100%;border-collapse:collapse}th{background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;font-size:11px;text-transform:uppercase;letter-spacing:.5px;text-align:left}td{padding:12px 10px;border-bottom:1px solid #eee;vertical-align:middle}@media print{body{padding:12px}}</style>
-    </head><body>
-      <h2>${battle.name} — Cypher ${cypher}</h2>
-      <p>Juges : <strong>${judgeNames}</strong> &nbsp;|&nbsp; ${new Date().toLocaleDateString('fr-FR')} &nbsp;|&nbsp; ${filtered.length} équipe(s)</p>
-      <table><thead><tr><th>Sticker</th><th>Crew</th><th>Membres</th><th style="text-align:center">Score (0–5)</th><th>Commentaire</th></tr></thead>
-      <tbody>${rows}</tbody></table>
-    </body></html>`)
+    if (!w) { alert('Autorisez les popups'); return }
+    w.document.write(`<!DOCTYPE html><html><head><title>Feuilles juges</title>
+      <style>body{font-family:Arial,sans-serif;padding:20px}h2{margin-bottom:4px}p{color:#666;font-size:13px;margin-bottom:16px}td{padding:10px 8px;border-bottom:1px solid #eee}@media print{.break{page-break-before:always}}</style>
+    </head><body>${sheet('A')}<div class="break"></div>${sheet('B')}</body></html>`)
     w.document.close(); w.print()
   }
 
+  // ── Mode affichage (nouvel onglet, BroadcastChannel, À suivre)
+  const openDisplayMode = () => {
+    const sA = sortByCypher(crews, 'A')
+    const sB = sortByCypher(crews, 'B')
+
+    const html = `<!DOCTYPE html><html lang="fr"><head>
+<meta charset="UTF-8">
+<title>${battle.name} — Qualifications</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;color:#fff;font-family:'Arial Black',Arial,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  header{text-align:center;padding:12px 24px;border-bottom:2px solid #111;flex-shrink:0}
+  header h1{font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:3px}
+  header .sub{font-size:10px;color:#333;letter-spacing:2px;margin-top:2px}
+  .arena{display:flex;flex:1;overflow:hidden}
+  .side{flex:1;display:flex;flex-direction:column;align-items:center;padding:24px 20px;overflow:hidden}
+  .side.A{border-right:2px solid #111}
+  .cypher-label{font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;padding:3px 12px;border-radius:20px;margin-bottom:20px;flex-shrink:0}
+  .side.A .cypher-label{color:#666;border:1px solid #1a1a1a}
+  .side.B .cypher-label{color:#ff3333;border:1px solid #3d0000}
+  .battle{text-align:center;flex-shrink:0;width:100%}
+  .team{margin:4px 0}
+  .sticker{font-size:13px;font-weight:900;letter-spacing:2px;margin-bottom:1px}
+  .side.A .sticker{color:#444}
+  .side.B .sticker{color:#6b0000}
+  .cname{font-size:clamp(26px,3.5vw,58px);font-weight:900;text-transform:uppercase;line-height:1.05;letter-spacing:1px}
+  .side.A .cname{color:#fff}
+  .side.B .cname{color:#ff3333}
+  .vs{font-size:clamp(12px,1.5vw,22px);color:#222;font-weight:900;margin:10px 0;letter-spacing:4px}
+  .sep{width:80%;height:1px;background:#111;margin:16px auto;flex-shrink:0}
+  .suivre-block{width:100%;flex:1;overflow:hidden}
+  .suivre-title{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#2a2a2a;margin-bottom:8px;text-align:center}
+  .suivre-item{font-size:clamp(11px,1.3vw,16px);font-weight:700;text-transform:uppercase;padding:5px 8px;color:#2a2a2a;text-align:center;letter-spacing:1px}
+  .side.B .suivre-item{color:#3d0000}
+  .counter{font-size:10px;color:#1a1a1a;margin-top:8px;flex-shrink:0;letter-spacing:1px}
+  .end-msg{font-size:clamp(18px,2.5vw,36px);color:#1a1a1a;font-weight:900;text-transform:uppercase;text-align:center;letter-spacing:2px;margin-top:40px}
+</style>
+</head><body>
+<header>
+  <h1>${battle.name}</h1>
+  <div class="sub">QUALIFICATIONS EN COURS</div>
+</header>
+<div class="arena">
+  <div class="side A" id="sideA"></div>
+  <div class="side B" id="sideB"></div>
+</div>
+<script>
+  const crewsA = ${JSON.stringify(sA)};
+  const crewsB = ${JSON.stringify(sB)};
+
+  function makePairs(arr) {
+    if (!arr.length) return [];
+    const p = [];
+    if (arr.length % 2 === 0) {
+      for (let i = 0; i < arr.length; i += 2) p.push([arr[i], arr[i+1]]);
+    } else {
+      for (let i = 0; i < arr.length - 3; i += 2) p.push([arr[i], arr[i+1]]);
+      if (arr.length >= 3) p.push([arr[arr.length-3], arr[arr.length-2], arr[arr.length-1]]);
+    }
+    return p;
+  }
+
+  const pairsA = makePairs(crewsA);
+  const pairsB = makePairs(crewsB);
+  let iA = ${idxA}, iB = ${idxB};
+
+  function renderSide(side, pairs, idx) {
+    const el = document.getElementById('side' + side);
+    const isB = side === 'B';
+    if (!pairs.length) { el.innerHTML = '<div class="end-msg">Aucune équipe<br>Cypher ' + side + '</div>'; return; }
+    if (idx >= pairs.length) { el.innerHTML = '<div class="end-msg">✓ Fin du<br>Cypher ' + side + '</div>'; return; }
+    const cur = pairs[idx];
+    const isTrio = cur.length === 3;
+    let battleHTML = '';
+    cur.forEach((t, i) => {
+      if (i > 0) battleHTML += '<div class="vs">VS</div>';
+      battleHTML += '<div class="team"><div class="sticker">' + t.sticker + '</div><div class="cname">' + t.name + '</div></div>';
+    });
+    const upcoming = pairs.slice(idx + 1, idx + 6);
+    let upHTML = '';
+    if (upcoming.length) {
+      upHTML = '<div class="suivre-title">À SUIVRE</div>';
+      upcoming.forEach(pair => {
+        upHTML += '<div class="suivre-item">' + pair.map(t => t.sticker + ' ' + t.name).join(' vs ') + '</div>';
+      });
+    }
+    el.innerHTML =
+      '<div class="cypher-label">CYPHER ' + side + (isTrio ? ' — BATTLE À 3' : '') + '</div>' +
+      '<div class="battle">' + battleHTML + '</div>' +
+      '<div class="sep"></div>' +
+      '<div class="suivre-block">' + upHTML + '</div>' +
+      '<div class="counter">' + (idx + 1) + ' / ' + pairs.length + '</div>';
+  }
+
+  // Écouter les mises à jour depuis la page principale
+  const ch = new BroadcastChannel('citc_qualif_${battle.id}');
+  ch.onmessage = (e) => {
+    iA = e.data.idxA; iB = e.data.idxB;
+    renderSide('A', pairsA, iA);
+    renderSide('B', pairsB, iB);
+  };
+
+  renderSide('A', pairsA, iA);
+  renderSide('B', pairsB, iB);
+</script>
+</body></html>`
+
+    const w = window.open('', '_blank')
+    if (!w) { alert('Autorisez les popups pour ouvrir le mode affichage'); return }
+    w.document.write(html)
+    w.document.close()
+  }
+
+  // ──────────────────────────────────────────────────
   return (
     <div>
-      {/* ── Modales ── */}
-      {editing && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
-          <div className="card" style={{ maxWidth: 440, width: '100%', padding: '28px' }}>
-            <div className="flex-between" style={{ marginBottom: 20 }}>
-              <div className="title-sm">Modifier l'inscription</div>
-              <button className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>✕</button>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <div className="label">Sticker</div>
-              <div style={{ padding: '8px 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text3)', fontSize: 13 }}>
-                {editing.sticker} — Cypher {editing.cypher} <span style={{ fontSize: 11 }}>(non modifiable)</span>
-              </div>
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <div className="label">Nom du crew</div>
-              <input className="input" value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <div className="label">Membre 1</div>
-              <input className="input" value={editForm.member1} onChange={e => setEditForm(p => ({ ...p, member1: e.target.value }))} placeholder="prénom nom" />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <div className="label">Membre 2</div>
-              <input className="input" value={editForm.member2} onChange={e => setEditForm(p => ({ ...p, member2: e.target.value }))} placeholder="prénom nom" />
-            </div>
-            <div className="flex-center" style={{ gap: 10 }}>
-              <button className="btn btn-ghost" onClick={() => setEditing(null)}>Annuler</button>
-              <button className="btn btn-white" onClick={saveEdit} disabled={saving}>{saving ? '…' : '💾 Enregistrer'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {confirmDel && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
-          <div className="card" style={{ maxWidth: 380, width: '100%', textAlign: 'center', padding: '36px 28px' }}>
-            <div style={{ fontSize: 28, marginBottom: 12 }}>⚠️</div>
-            <div className="title-sm" style={{ marginBottom: 8 }}>Supprimer cette équipe ?</div>
-            <div style={{ fontWeight: 700, fontSize: 15, textTransform: 'uppercase', marginBottom: 4 }}>{confirmDel.sticker} — {crewDisplay(confirmDel)}</div>
-            <div className="muted" style={{ marginBottom: 8, textTransform: 'lowercase' }}>{confirmDel.member1} &amp; {confirmDel.member2}</div>
-            <div className="alert-warn" style={{ marginBottom: 20, textAlign: 'left' }}>Action irréversible. Les scores associés seront aussi supprimés.</div>
-            <div className="flex-center" style={{ gap: 10 }}>
-              <button className="btn btn-ghost" onClick={() => setConfirmDel(null)}>Annuler</button>
-              <button className="btn btn-red" style={{ padding: '8px 20px' }} onClick={deleteCrew} disabled={deleting}>
-                {deleting ? '…' : 'Oui, supprimer définitivement'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════
-          SECTION STATS — en haut
-      ══════════════════════════════════════ */}
+      {/* ══════ STATS ══════ */}
       <div className="grid2" style={{ marginBottom: 12 }}>
         <div className="card" style={{ textAlign: 'center', padding: '24px 16px' }}>
           <div className="label" style={{ marginBottom: 8 }}>Cypher A</div>
@@ -309,7 +259,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
       </div>
 
       {crews.length > 0 && diff > 3 && (
-        <div className="alert-warn" style={{ marginBottom: 12 }}>⚠️ <strong>Déséquilibre !</strong> Différence de {diff} équipes — orientez les inscriptions vers le Cypher {weaker}.</div>
+        <div className="alert-warn" style={{ marginBottom: 12 }}>⚠️ <strong>Déséquilibre !</strong> Différence de {diff} équipes — orientez vers le Cypher {weaker}.</div>
       )}
       {crews.length > 0 && diff <= 3 && (
         <div className="alert-ok" style={{ marginBottom: 12 }}>✓ Cyphers équilibrés — différence de {diff} équipe(s).</div>
@@ -327,65 +277,54 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
           ))}
         </div>
         <div className="card card-sm">
-          <div className="label" style={{ marginBottom: 8 }}>DJs ({(djs || []).length})</div>
-          {(djs || []).length === 0 && <div className="caption">Aucun DJ</div>}
-          {(djs || []).map(d => (
+          <div className="label" style={{ marginBottom: 8 }}>DJs ({(djs||[]).length})</div>
+          {(djs||[]).length === 0 && <div className="caption">Aucun DJ</div>}
+          {(djs||[]).map(d => (
             <div key={d.id} style={{ padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>{d.name}</div>
           ))}
         </div>
         <div className="card card-sm">
-          <div className="label" style={{ marginBottom: 8 }}>Speakers ({(speakers || []).length})</div>
-          {(speakers || []).length === 0 && <div className="caption">Aucun speaker</div>}
-          {(speakers || []).map(s => (
+          <div className="label" style={{ marginBottom: 8 }}>Speakers ({(speakers||[]).length})</div>
+          {(speakers||[]).length === 0 && <div className="caption">Aucun speaker</div>}
+          {(speakers||[]).map(s => (
             <div key={s.id} style={{ padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>{s.name}</div>
           ))}
         </div>
       </div>
 
-      {/* ══════════════════════════════════════
-          SÉPARATEUR
-      ══════════════════════════════════════ */}
+      {/* ══════ SÉPARATEUR ══════ */}
       <div style={{ borderTop: '1px solid var(--border2)', marginBottom: 20 }} />
 
-      {/* ══════════════════════════════════════
-          SECTION QUALIFICATION — en bas
-          Ordre : Assigner → Panel → Cypher A/B → Table
-      ══════════════════════════════════════ */}
-
-      {/* Ligne export + bouton Assigner */}
+      {/* ══════ ACTIONS ══════ */}
       <div className="flex-between" style={{ marginBottom: 16 }}>
         <button
           className="btn"
           style={{
-            background: view === 'assign' ? 'var(--surface2)' : isAssigned ? 'var(--green-dim)' : 'var(--white)',
-            color:      view === 'assign' ? 'var(--text2)'    : isAssigned ? 'var(--green)'     : '#000',
-            border:     `1px solid ${view === 'assign' ? 'var(--border2)' : isAssigned ? 'var(--green-dim)' : 'transparent'}`,
-            fontWeight: 700,
-            padding: '9px 18px',
+            background: showAssign ? 'var(--surface2)' : judges.some(j => assignments[j.id]) ? 'var(--green-dim)' : 'var(--white)',
+            color:      showAssign ? 'var(--text2)'    : judges.some(j => assignments[j.id]) ? 'var(--green)'     : '#000',
+            border:     `1px solid ${showAssign ? 'var(--border2)' : judges.some(j => assignments[j.id]) ? 'var(--green-dim)' : 'transparent'}`,
+            fontWeight: 700, padding: '9px 18px',
           }}
-          onClick={() => setView(v => v === 'assign' ? 'list' : 'assign')}
+          onClick={() => setShowAssign(v => !v)}
         >
-          {view === 'assign'
-            ? '← Retour liste'
-            : isAssigned
-              ? `✓ Juges assignés (${assignedJudges.length})`
+          {showAssign
+            ? '← Fermer'
+            : judges.some(j => assignments[j.id])
+              ? `✓ Juges assignés`
               : '⚙ Assigner les juges'
           }
         </button>
-
         <div className="flex" style={{ gap: 8 }}>
-          <button className="btn btn-ghost btn-sm" onClick={openDisplayMode}>🖥 Mode affichage</button>
-          <button className="btn btn-ghost btn-sm" onClick={exportDanseurs}>⬇ Danseurs.csv</button>
-          <button className="btn btn-ghost btn-sm" onClick={print}>🖨 Imprimer feuille</button>
+          <button className="btn btn-ghost btn-sm" onClick={openDisplayMode}>🖥 Affichage</button>
+          <button className="btn btn-ghost btn-sm" onClick={exportDanseurs}>⬇ CSV</button>
+          <button className="btn btn-ghost btn-sm" onClick={printSheets}>🖨 Imprimer</button>
         </div>
       </div>
 
-      {/* Panel d'assignation — s'ouvre ici, au-dessus des boutons cypher */}
-      {view === 'assign' && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="title-sm" style={{ marginBottom: 16 }}>
-            Assigner les juges à un cypher
-          </div>
+      {/* Panel assignation juges */}
+      {showAssign && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="title-sm" style={{ marginBottom: 16 }}>Assigner les juges à un cypher</div>
           {judges.length === 0 && <div className="caption">Aucun juge configuré.</div>}
           {judges.map(j => (
             <div key={j.id} className="flex-between" style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
@@ -404,65 +343,85 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
         </div>
       )}
 
-      {/* Sélecteur Cypher A / B — juste au-dessus du tableau */}
-      <div className="flex" style={{ gap: 8, marginBottom: 12 }}>
-        <button
-          className="btn btn-sm"
-          style={{
-            background: cypher === 'A' ? 'var(--surface)' : 'var(--surface2)',
-            color: cypher === 'A' ? 'var(--text)' : 'var(--text2)',
-            border: `1px solid ${cypher === 'A' ? 'var(--border)' : 'var(--border2)'}`,
-          }}
-          onClick={() => setCypher('A')}
-        >
-          Cypher A
-        </button>
-        <button
-          className="btn btn-sm"
-          style={{
-            background: cypher === 'B' ? 'var(--red-dim)' : 'var(--surface2)',
-            color: cypher === 'B' ? 'var(--red)' : 'var(--text2)',
-            border: `1px solid ${cypher === 'B' ? 'var(--red-dim)' : 'var(--border2)'}`,
-          }}
-          onClick={() => setCypher('B')}
-        >
-          Cypher B
-        </button>
-      </div>
+      {/* ══════ GESTION BATTLES ══════ */}
+      <div style={{ borderTop: '1px solid var(--border2)', paddingTop: 20 }}>
+        <div className="grid2" style={{ gap: 12 }}>
+          {[{ side: 'A', pairs: pairsA, idx: idxA }, { side: 'B', pairs: pairsB, idx: idxB }].map(({ side, pairs, idx }) => {
+            const isB    = side === 'B'
+            const cur    = pairs[idx]
+            const isTrio = cur?.length === 3
+            const upcoming = pairs.slice(idx + 1, idx + 6)
 
-      {/* Tableau équipes */}
-      {view === 'list' && (
-        <div className="card">
-          <div className="flex-between" style={{ marginBottom: 16 }}>
-            <div>
-              <span className="muted">Cypher </span>
-              <strong style={{ color: cypher === 'A' ? 'var(--text)' : 'var(--red)' }}>{cypher}</strong>
-              {isAssigned && (
-                <span className="muted"> — Juges : <strong>{assignedJudges.map(j => j.name).join(', ')}</strong></span>
-              )}
-            </div>
-            <span className="muted">{filtered.length} équipe(s)</span>
-          </div>
-          {filtered.length === 0 ? <div className="caption">Aucune équipe dans ce cypher.</div> : (
-            <table className="tbl">
-              <thead><tr><th>Sticker</th><th>Crew</th><th>Membres</th><th></th></tr></thead>
-              <tbody>
-                {filtered.map(c => (
-                  <tr key={c.id}>
-                    <td><span className={c.cypher === 'A' ? 'sticker-a' : 'sticker-b'}>{c.sticker}</span></td>
-                    <td style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{crewDisplay(c)}</td>
-                    <td className="muted" style={{ textTransform: 'lowercase' }}>{c.member1} &amp; {c.member2}</td>
-                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button className="btn btn-ghost btn-sm" style={{ marginRight: 4 }} onClick={() => openEdit(c)}>✏️</button>
-                      <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)', borderColor: 'var(--red-dim)' }} onClick={() => setConfirmDel(c)}>🗑</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+            return (
+              <div key={side} className="card" style={{ border: isB ? '1px solid #3d0000' : '1px solid var(--border2)' }}>
+                {/* Header */}
+                <div className="flex-between" style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: isB ? 'var(--red)' : 'var(--text2)' }}>
+                    Cypher {side}{isTrio ? ' — BATTLE À 3' : ''}
+                  </div>
+                  <div className="muted" style={{ fontSize: 11 }}>
+                    {pairs.length === 0 ? '—' : idx >= pairs.length ? 'Terminé' : `${idx + 1} / ${pairs.length}`}
+                  </div>
+                </div>
+
+                {/* Battle courant */}
+                {pairs.length === 0 ? (
+                  <div className="caption" style={{ textAlign: 'center', padding: '20px 0' }}>Aucune équipe</div>
+                ) : idx >= pairs.length ? (
+                  <div style={{ textAlign: 'center', padding: '20px 0', color: isB ? 'var(--red)' : 'var(--text2)', fontWeight: 700, fontSize: 14 }}>
+                    ✓ Fin du Cypher {side}
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ textAlign: 'center', padding: '8px 0 12px' }}>
+                      {cur.map((t, i) => (
+                        <div key={t.id}>
+                          {i > 0 && <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 700, letterSpacing: 3, margin: '8px 0' }}>VS</div>}
+                          <div style={{ fontSize: 11, fontWeight: 800, color: isB ? 'var(--red)' : 'var(--text2)', letterSpacing: 2, marginBottom: 2 }}>{t.sticker}</div>
+                          <div style={{ fontSize: 20, fontWeight: 900, textTransform: 'uppercase', color: isB ? 'var(--red)' : 'var(--text)' }}>{t.name}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Boutons navigation */}
+                    <div className="flex-center" style={{ gap: 8, marginBottom: 14 }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        disabled={idx <= 0}
+                        onClick={() => navigate(side, -1)}
+                        style={{ opacity: idx <= 0 ? 0.3 : 1 }}
+                      >← Précédent</button>
+                      <button
+                        className="btn btn-sm"
+                        disabled={idx >= pairs.length}
+                        onClick={() => navigate(side, 1)}
+                        style={{
+                          opacity: idx >= pairs.length ? 0.3 : 1,
+                          background: isB ? 'var(--red-dim)' : 'var(--surface)',
+                          color: isB ? 'var(--red)' : 'var(--text)',
+                          border: `1px solid ${isB ? 'var(--red-dim)' : 'var(--border)'}`,
+                        }}
+                      >Suivant →</button>
+                    </div>
+
+                    {/* À suivre */}
+                    {upcoming.length > 0 && (
+                      <div style={{ borderTop: '1px solid var(--border2)', paddingTop: 10 }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>À suivre</div>
+                        {upcoming.map((pair, i) => (
+                          <div key={i} style={{ fontSize: 11, fontWeight: 600, padding: '4px 0', borderBottom: '1px solid var(--border)', color: 'var(--text3)', textTransform: 'uppercase' }}>
+                            {pair.map(t => `${t.sticker} ${t.name}`).join(' vs ')}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )
+          })}
         </div>
-      )}
+      </div>
     </div>
   )
 }
