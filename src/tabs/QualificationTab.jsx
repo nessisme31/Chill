@@ -36,13 +36,11 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   const diff = Math.abs(cA - cB)
   const weaker = cA < cB ? 'A' : 'B'
 
-  // Paires de battles
   const pairsA = useMemo(() => makePairs(sortByCypher(crews, 'A')), [crews])
   const pairsB = useMemo(() => makePairs(sortByCypher(crews, 'B')), [crews])
 
   useEffect(() => { loadAssignments() }, [battle.id])
 
-  // BroadcastChannel pour synchroniser avec la page projetée
   useEffect(() => {
     channelRef.current = new BroadcastChannel('citc_qualif_' + battle.id)
     return () => channelRef.current?.close()
@@ -62,7 +60,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     await supabase.from('judges').update({ cypher: val }).eq('id', judgeId)
   }
 
-  // Navigation battles (sync avec page projetée)
   const navigate = (side, delta) => {
     if (side === 'A') {
       const newIdx = Math.max(0, Math.min(pairsA.length, idxA + delta))
@@ -75,7 +72,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     }
   }
 
-  // ── Export CSV
   const exportDanseurs = () => {
     const rows = [['Blasé 01', 'Blasé 02', 'Crew']]
     crews.forEach(c => rows.push([c.member1 || '', c.member2 || '', c.name || '']))
@@ -87,7 +83,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     URL.revokeObjectURL(url)
   }
 
-  // ── Impression feuille juges (les deux cyphers, page-break entre)
   const printSheets = () => {
     const sheet = (cypher) => {
       const filtered = crews.filter(c => c.cypher === cypher)
@@ -123,7 +118,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     w.document.close(); w.print()
   }
 
-  // ── Mode affichage (nouvel onglet, design CERCLE A/B, BroadcastChannel)
   const openDisplayMode = () => {
     const sA = sortByCypher(crews, 'A')
     const sB = sortByCypher(crews, 'B')
@@ -142,7 +136,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   .hdr-a .lbl{display:inline-flex;align-items:center;border:4px solid #fff;padding:12px 36px}
   .hdr-a .lbl span{font-size:clamp(28px,4.2vw,62px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:3px}
   .hdr-logo{flex:0 0 auto;padding:0 32px;text-align:center}
-  .hdr-logo img{height:clamp(90px,13vh,160px);object-fit:contain}
+  .hdr-logo img{height:clamp(160px,24vh,300px);object-fit:contain}
   .hdr-b{flex:1;display:flex;justify-content:center}
   .hdr-b .lbl{display:inline-flex;align-items:center;background:#cc0000;padding:12px 36px}
   .hdr-b .lbl span{font-size:clamp(28px,4.2vw,62px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:3px}
@@ -166,8 +160,10 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   /* ── À suivre ── */
   .st{font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;margin-bottom:8px;flex-shrink:0;text-align:center}
   .sl{display:flex;flex-direction:column;gap:5px;overflow:hidden;flex:1}
-  .si-a{border:2px solid #fff;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#fff;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
-  .si-b{border:2px solid #cc0000;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#cc0000;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .si-a{border:2px solid #fff;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#fff;letter-spacing:.5px;text-align:center;line-height:1.4}
+  .si-b{border:2px solid #cc0000;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#cc0000;letter-spacing:.5px;text-align:center;line-height:1.4}
+  .stk-a{color:#555;font-size:.85em}
+  .stk-b{color:#8b0000;font-size:.85em}
 
   .fin-a{font-size:clamp(20px,3vw,40px);font-weight:900;text-transform:uppercase;text-align:center;color:#1a1a1a;padding:40px 0;flex:1}
   .fin-b{font-size:clamp(20px,3vw,40px);font-weight:900;text-transform:uppercase;text-align:center;color:#4d0000;padding:40px 0;flex:1}
@@ -229,7 +225,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
       suivre = '<div class="st">À SUIVRE</div><div class="sl">' +
         upcoming.map(pair =>
           '<div class="si-' + (isA?'a':'b') + '">' +
-          pair.map(t => t.sticker + ' ' + t.name).join(' vs ') +
+          pair.map(t => '<span class="stk-' + (isA?'a':'b') + '">' + t.sticker + '</span> ' + t.name).join(' <span style="opacity:.5">vs</span> ') +
           '</div>'
         ).join('') + '</div>';
     }
@@ -258,7 +254,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     w.document.close()
   }
 
-  // ──────────────────────────────────────────────────
   return (
     <div>
       {/* ══════ STATS ══════ */}
@@ -376,7 +371,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
 
             return (
               <div key={side} className="card" style={{ border: isB ? '1px solid #3d0000' : '1px solid var(--border2)' }}>
-                {/* Header */}
                 <div className="flex-between" style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: isB ? 'var(--red)' : 'var(--text2)' }}>
                     Cercle {side}{isTrio ? ' — BATTLE À 3' : ''}
@@ -386,7 +380,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
                   </div>
                 </div>
 
-                {/* Battle courant */}
                 {pairs.length === 0 ? (
                   <div className="caption" style={{ textAlign: 'center', padding: '20px 0' }}>Aucune équipe</div>
                 ) : idx >= pairs.length ? (
@@ -405,7 +398,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
                       ))}
                     </div>
 
-                    {/* Boutons navigation */}
                     <div className="flex-center" style={{ gap: 8, marginBottom: 14 }}>
                       <button
                         className="btn btn-ghost btn-sm"
@@ -426,7 +418,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
                       >Suivant →</button>
                     </div>
 
-                    {/* À suivre */}
                     {upcoming.length > 0 && (
                       <div style={{ borderTop: '1px solid var(--border2)', paddingTop: 10 }}>
                         <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>À suivre</div>
