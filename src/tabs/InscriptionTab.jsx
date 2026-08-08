@@ -100,7 +100,7 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
               style={{ padding: '14px 8px', flexDirection: 'column', gap: 4 }}
               onClick={() => preview('A')}
             >
-              <span style={{ fontSize: 15 }}>Cypher A</span>
+              <span style={{ fontSize: 15 }}>Cercle A</span>
               <span style={{ fontSize: 11, fontWeight: 400, opacity: .6 }}>{crewsA.length} équipes</span>
             </button>
             <button
@@ -108,7 +108,7 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
               style={{ padding: '14px 8px', flexDirection: 'column', gap: 4 }}
               onClick={() => preview('B')}
             >
-              <span style={{ fontSize: 15 }}>Cypher B</span>
+              <span style={{ fontSize: 15 }}>Cercle B</span>
               <span style={{ fontSize: 11, fontWeight: 400, opacity: .6 }}>{crewsB.length} équipes</span>
             </button>
           </div>
@@ -120,7 +120,7 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
         {/* Cypher A */}
         <div className="card" style={{ border: '1px solid var(--border2)' }}>
           <div className="flex-between" style={{ marginBottom: 12 }}>
-            <div className="title-sm">Cypher A</div>
+            <div className="title-sm">Cercle A</div>
             <span className="badge-a">{crewsA.length}</span>
           </div>
           {crewsA.length === 0
@@ -140,7 +140,7 @@ export default function InscriptionTab({ battle, crews, setCrews }) {
         {/* Cypher B */}
         <div className="card" style={{ border: '1px solid #3d0000' }}>
           <div className="flex-between" style={{ marginBottom: 12 }}>
-            <div className="title-sm" style={{ color: 'var(--red)' }}>Cypher B</div>
+            <div className="title-sm" style={{ color: 'var(--red)' }}>Cercle B</div>
             <span className="badge-b">{crewsB.length}</span>
           </div>
           {crewsB.length === 0
