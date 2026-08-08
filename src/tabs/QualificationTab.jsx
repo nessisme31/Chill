@@ -131,7 +131,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   body{background:#000;color:#fff;font-family:'Arial Black',Arial,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
   /* ── Header ── */
-  .hdr{position:relative;display:flex;align-items:center;padding:20px 40px;flex-shrink:0;border-bottom:2px solid #111}
+  .hdr{position:relative;display:flex;align-items:center;padding:20px 40px;flex-shrink:0}
   .hdr-a{flex:1;display:flex;justify-content:center}
   .hdr-a .lbl{display:inline-flex;align-items:center;border:4px solid #fff;padding:12px 36px}
   .hdr-a .lbl span{font-size:clamp(28px,4.2vw,62px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:3px}
@@ -150,7 +150,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   .bx-a{border:3px solid #fff;margin-bottom:20px;flex-shrink:0}
   .bx-b{background:#cc0000;margin-bottom:20px;flex-shrink:0}
   .brow{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 22px}
-  .brow+.brow{border-top:3px solid rgba(0,0,0,.12);margin-top:4px}
+  .brow+.brow{margin-top:4px}
   .brow-a{background:#fff}
   .bstk-a{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:#888;flex-shrink:0;min-width:36px}
   .bstk-b{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:rgba(255,255,255,.5);flex-shrink:0;min-width:36px}
@@ -160,8 +160,8 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   /* ── À suivre ── */
   .st{font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;margin-bottom:8px;flex-shrink:0;text-align:center}
   .sl{display:flex;flex-direction:column;gap:5px;overflow:hidden;flex:1}
-  .si-a{border:2px solid #fff;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#fff;letter-spacing:.5px;text-align:center;line-height:1.4}
-  .si-b{border:2px solid #cc0000;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#cc0000;letter-spacing:.5px;text-align:center;line-height:1.4}
+  .si-a{border:2px solid #fff;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#fff;letter-spacing:.5px;text-align:left;line-height:1.4}
+  .si-b{border:2px solid #cc0000;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#cc0000;letter-spacing:.5px;text-align:left;line-height:1.4}
   .stk-a{color:#555;font-size:.85em}
   .stk-b{color:#8b0000;font-size:.85em}
 
@@ -320,7 +320,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
             background: showAssign ? 'var(--surface2)' : judges.some(j => assignments[j.id]) ? 'var(--green-dim)' : 'var(--white)',
             color:      showAssign ? 'var(--text2)'    : judges.some(j => assignments[j.id]) ? 'var(--green)'     : '#000',
             border:     `1px solid ${showAssign ? 'var(--border2)' : judges.some(j => assignments[j.id]) ? 'var(--green-dim)' : 'transparent'}`,
-            fontWeight: 700, padding: '9px 18px',
+            fontWeight: 707, padding: '9px 18px',
           }}
           onClick={() => setShowAssign(v => !v)}
         >
