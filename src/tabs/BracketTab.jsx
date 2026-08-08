@@ -1,23 +1,19 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-// ── Constantes de dimensionnement
-const SLOT_H  = 40    // hauteur fixe d'un slot équipe (px)
-const MATCH_H = SLOT_H * 2 + 1   // hauteur d'un match (2 slots + 1px séparateur)
-const R1_GAP  = 8     // espace entre matchs R1
-const CONN    = 14    // longueur des connecteurs horizontaux (px)
+// ── Constantes de dimensionnement (compact pour tenir sans scroll)
+const SLOT_H  = 30    // hauteur fixe d'un slot équipe (px)
+const MATCH_H = SLOT_H * 2 + 1   // 61px
+const R1_GAP  = 5     // espace entre matchs R1
+const CONN    = 8     // longueur des connecteurs horizontaux (px)
+const CARD_W  = 128   // largeur des cartes
 
-// Padding-top calculé pour aligner chaque colonne sur la précédente
-// Centre de M1 R1 = 20, centre de M2 R1 = 20+81+8 = 109
-// Centre R2 M1 = (20+109)/2 = 64.5 → paddingTop = 64.5 - 20 = 44.5 ≈ 45
-const R2_PT  = 45
-const R2_GAP = MATCH_H + R1_GAP   // 89px — espace entre matchs R2
-// Centre R2 M1 (absolu) = R2_PT + 20 = 65
-// Centre R2 M2 (absolu) = R2_PT + 81 + 89 + 20 = 65 + 170 = 235... recalc:
-// R2_M1_center = R2_PT + SLOT_H/2 = 45 + 20 = 65
-// R2_M2_center = R2_PT + MATCH_H + R2_GAP + SLOT_H/2 = 45 + 81 + 89 + 20 = 235
-// R3_PT = (65 + 235)/2 - 20 = 150 - 20 = 130
-const R3_PT  = 130
+// R2_PT: midpoint entre les 2 centres R1 – SLOT_H/2
+// M1 center = 15, M2 center = 61+5+15 = 81 → mid = 48 → R2_PT = 48-15 = 33
+const R2_PT  = 33
+const R2_GAP = MATCH_H + R1_GAP   // 66px
+// R2_M1_center = 33+15=48, R2_M2_center = 33+61+66+15=175 → mid=111.5 → R3_PT=111.5-15≈97
+const R3_PT  = 97
 
 const emptyBracket = () => {
   const b = {}
@@ -164,9 +160,9 @@ export default function BracketTab({ battle, crews }) {
   // ── Impression bracket A4 paysage
   const printBracket = () => {
     const S = 34, M = 69, G1 = 8, G2 = 77
-    const PT2 = Math.round((M + G1) / 2)       // 38
-    const PT3 = Math.round(PT2 + (M + G2) / 2) // 113
-    const CW = 138, CONN = 11, COL = CW + CONN * 2
+    const PT2 = Math.round((M + G1) / 2)
+    const PT3 = Math.round(PT2 + (M + G2) / 2)
+    const CW = 138, CONN_P = 11, COL_P = CW + CONN_P * 2
 
     const teamRow = (t, isW, isL) => {
       if (!t) return `<div class="slot"><span class="name" style="color:#ccc">—</span></div>`
@@ -182,9 +178,9 @@ export default function BracketTab({ battle, crews }) {
       if (!m) return ''
       const t1W = m.winner === 'team1', t2W = m.winner === 'team2'
       const hConn = side === 'left'
-        ? `<div class="ch" style="right:${-CONN}px;top:${S/2}px;width:${CONN}px"></div>`
+        ? `<div class="ch" style="right:${-CONN_P}px;top:${S/2}px;width:${CONN_P}px"></div>`
         : side === 'right'
-          ? `<div class="ch" style="left:${-CONN}px;top:${S/2}px;width:${CONN}px"></div>`
+          ? `<div class="ch" style="left:${-CONN_P}px;top:${S/2}px;width:${CONN_P}px"></div>`
           : ''
       return `<div style="position:relative">
         <div class="match${isF ? ' final' : ''}">
@@ -197,22 +193,22 @@ export default function BracketTab({ battle, crews }) {
     const pair = (round, mA, mB, side, gap) => {
       const vH = M + gap
       const vc = side === 'left'
-        ? `<div class="cv" style="right:${-CONN}px;top:${S/2}px;height:${vH}px"></div>`
-        : `<div class="cv" style="left:${-CONN}px;top:${S/2}px;height:${vH}px"></div>`
+        ? `<div class="cv" style="right:${-CONN_P}px;top:${S/2}px;height:${vH}px"></div>`
+        : `<div class="cv" style="left:${-CONN_P}px;top:${S/2}px;height:${vH}px"></div>`
       return `<div style="position:relative">${card(round,mA,side)}<div style="height:${gap}px"></div>${card(round,mB,side)}${vc}</div>`
     }
 
     const hdrs = ['TOP 16','TOP 8','Demi-finales','⚡ Finale ⚡','Demi-finales','TOP 8','TOP 16']
-    const hRow = hdrs.map(h => `<div style="width:${COL}px;flex-shrink:0;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#666">${h}</div>`).join('')
+    const hRow = hdrs.map(h => `<div style="width:${COL_P}px;flex-shrink:0;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#666">${h}</div>`).join('')
 
     const cols = [
-      `<div style="width:${COL}px;flex-shrink:0;padding:0 ${CONN}px">${pair(1,1,2,'left',G1)}<div style="height:${G1}px"></div>${pair(1,3,4,'left',G1)}</div>`,
-      `<div style="width:${COL}px;flex-shrink:0;padding:${PT2}px ${CONN}px 0">${pair(2,1,2,'left',G2)}</div>`,
-      `<div style="width:${COL}px;flex-shrink:0;padding:${PT3}px ${CONN}px 0">${card(3,1,'left')}</div>`,
-      `<div style="width:${COL}px;flex-shrink:0;padding:${PT3}px ${CONN}px 0">${card(4,1,'none',true)}</div>`,
-      `<div style="width:${COL}px;flex-shrink:0;padding:${PT3}px ${CONN}px 0">${card(3,2,'right')}</div>`,
-      `<div style="width:${COL}px;flex-shrink:0;padding:${PT2}px ${CONN}px 0">${pair(2,3,4,'right',G2)}</div>`,
-      `<div style="width:${COL}px;flex-shrink:0;padding:0 ${CONN}px">${pair(1,5,6,'right',G1)}<div style="height:${G1}px"></div>${pair(1,7,8,'right',G1)}</div>`,
+      `<div style="width:${COL_P}px;flex-shrink:0;padding:0 ${CONN_P}px">${pair(1,1,2,'left',G1)}<div style="height:${G1}px"></div>${pair(1,3,4,'left',G1)}</div>`,
+      `<div style="width:${COL_P}px;flex-shrink:0;padding:${PT2}px ${CONN_P}px 0">${pair(2,1,2,'left',G2)}</div>`,
+      `<div style="width:${COL_P}px;flex-shrink:0;padding:${PT3}px ${CONN_P}px 0">${card(3,1,'left')}</div>`,
+      `<div style="width:${COL_P}px;flex-shrink:0;padding:${PT3}px ${CONN_P}px 0">${card(4,1,'none',true)}</div>`,
+      `<div style="width:${COL_P}px;flex-shrink:0;padding:${PT3}px ${CONN_P}px 0">${card(3,2,'right')}</div>`,
+      `<div style="width:${COL_P}px;flex-shrink:0;padding:${PT2}px ${CONN_P}px 0">${pair(2,3,4,'right',G2)}</div>`,
+      `<div style="width:${COL_P}px;flex-shrink:0;padding:0 ${CONN_P}px">${pair(1,5,6,'right',G1)}<div style="height:${G1}px"></div>${pair(1,7,8,'right',G1)}</div>`,
     ].join('')
 
     const champ = champion ? `<div style="text-align:center;margin-top:12px;padding:6px;background:#fffbea;border:2px solid gold;border-radius:4px;font-weight:900;font-size:13px;text-transform:uppercase">🏆 ${champion.name}</div>` : ''
@@ -268,7 +264,7 @@ export default function BracketTab({ battle, crews }) {
       <div
         style={{
           height: SLOT_H, display: 'flex', alignItems: 'center', gap: 5,
-          padding: '0 8px', cursor: canDeclare ? 'pointer' : canPlace ? 'pointer' : 'default',
+          padding: '0 6px', cursor: canDeclare ? 'pointer' : canPlace ? 'pointer' : 'default',
           background: isWinner ? '#0d2d14' : 'transparent',
           overflow: 'hidden',
         }}
@@ -277,15 +273,15 @@ export default function BracketTab({ battle, crews }) {
                : undefined}
       >
         {team?.sticker && (
-          <span style={{ fontSize: 9, fontWeight: 800, minWidth: 20, flexShrink: 0,
+          <span style={{ fontSize: 8, fontWeight: 800, minWidth: 18, flexShrink: 0,
             color: team.cypher === 'A' ? 'var(--text2)' : 'var(--red)',
             textDecoration: isLoser ? 'line-through' : 'none' }}>
             {team.sticker}
           </span>
         )}
-        {team?.isGuest && <span style={{ fontSize: 10, color: 'var(--gold)', flexShrink: 0 }}>⭐</span>}
+        {team?.isGuest && <span style={{ fontSize: 9, color: 'var(--gold)', flexShrink: 0 }}>⭐</span>}
         <span style={{
-          flex: 1, fontSize: 11, fontWeight: team ? 700 : 400, overflow: 'hidden',
+          flex: 1, fontSize: 10, fontWeight: team ? 700 : 400, overflow: 'hidden',
           whiteSpace: 'nowrap', textOverflow: 'ellipsis', textTransform: team ? 'uppercase' : 'none',
           color: isWinner ? 'var(--green)' : isLoser ? 'var(--text3)' : team ? 'var(--text)' : 'var(--text3)',
           textDecoration: isLoser ? 'line-through' : 'none',
@@ -293,12 +289,11 @@ export default function BracketTab({ battle, crews }) {
           {team ? team.name : canPlace ? '+ Placer' : '—'}
         </span>
         {team?.total != null && (
-          <span style={{ fontSize: 9, color: 'var(--text3)', flexShrink: 0, opacity: 0.7 }}>
+          <span style={{ fontSize: 8, color: 'var(--text3)', flexShrink: 0, opacity: 0.7 }}>
             {team.total}p
           </span>
         )}
-        {isWinner && <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 900, flexShrink: 0 }}>✓</span>}
-        {canDeclare && !team && <span style={{ fontSize: 9, color: 'var(--text3)', flexShrink: 0 }}>tap</span>}
+        {isWinner && <span style={{ fontSize: 9, color: 'var(--green)', fontWeight: 900, flexShrink: 0 }}>✓</span>}
       </div>
     )
   }
@@ -309,24 +304,19 @@ export default function BracketTab({ battle, crews }) {
     const canUndo = bracketLocked && !!m.winner
 
     return (
-      <div key={`${round}-${match}`} style={{ position: 'relative', width: 175 }}>
-        {/* Bouton annuler */}
+      <div key={`${round}-${match}`} style={{ position: 'relative', width: CARD_W }}>
         {canUndo && (
           <button onClick={() => undoWinner(round, match)} style={{
             position: 'absolute', top: 2, right: side === 'right' ? 'auto' : 2, left: side === 'right' ? 2 : 'auto',
             zIndex: 10, background: 'rgba(0,0,0,.6)', border: '1px solid var(--border2)',
-            borderRadius: 4, padding: '1px 5px', fontSize: 9, color: 'var(--text3)', cursor: 'pointer',
+            borderRadius: 4, padding: '1px 4px', fontSize: 8, color: 'var(--text3)', cursor: 'pointer',
           }}>↩</button>
         )}
-
-        {/* Card */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 5, overflow: 'hidden' }}>
           {renderSlot(round, match, 'team1')}
           <div style={{ height: 1, background: 'var(--border)' }} />
           {renderSlot(round, match, 'team2')}
         </div>
-
-        {/* Connecteur horizontal → vers le round suivant */}
         {side === 'left' && (
           <div style={{ position: 'absolute', right: -CONN, top: SLOT_H - 0.5, width: CONN, height: 1, background: 'var(--border2)' }} />
         )}
@@ -339,8 +329,6 @@ export default function BracketTab({ battle, crews }) {
 
   // ── Rendu d'une paire de matchs (avec connecteur vertical)
   const renderPair = (round, mA, mB, side, gap = R1_GAP) => {
-    // Centre de mA dans la paire = SLOT_H/2 = 20
-    // Centre de mB dans la paire = MATCH_H + gap + SLOT_H/2
     const vTop    = SLOT_H / 2
     const vBottom = MATCH_H + gap + SLOT_H / 2
     const vHeight = vBottom - vTop
@@ -350,8 +338,6 @@ export default function BracketTab({ battle, crews }) {
         {renderMatch(round, mA, side)}
         <div style={{ height: gap }} />
         {renderMatch(round, mB, side)}
-
-        {/* Connecteur vertical entre les deux matchs */}
         {side === 'left' && (
           <div style={{ position: 'absolute', right: -CONN, top: vTop, height: vHeight, width: 1, background: 'var(--border2)' }} />
         )}
@@ -376,7 +362,7 @@ export default function BracketTab({ battle, crews }) {
     )
   }
 
-  const COL = 175 + CONN * 2  // largeur totale d'une colonne (card + connecteurs)
+  const COL = CARD_W + CONN * 2
 
   return (
     <div>
@@ -385,22 +371,22 @@ export default function BracketTab({ battle, crews }) {
         <div style={{
           background: allR1Filled ? '#0d2d14' : '#1a1200',
           border: `1px solid ${allR1Filled ? 'var(--green-dim)' : 'var(--gold-dim)'}`,
-          borderRadius: 8, padding: '14px 20px', marginBottom: 20,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
+          borderRadius: 8, padding: '10px 16px', marginBottom: 12,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
         }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: allR1Filled ? 'var(--green)' : 'var(--gold)' }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: allR1Filled ? 'var(--green)' : 'var(--gold)' }}>
               {allR1Filled ? '✓ Bracket complet — prêt à lancer' : '⏳ Modifiez le bracket avant de lancer'}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
               {allR1Filled
-                ? 'Cliquez sur une équipe pour la repositionner. Validez quand vous êtes prêt.'
+                ? 'Cliquez sur une équipe pour la repositionner.'
                 : 'Des slots sont encore vides — cliquez pour placer une équipe.'}
             </div>
           </div>
           <button
             className="btn btn-white"
-            style={{ padding: '10px 24px', fontWeight: 800, opacity: allR1Filled ? 1 : 0.4 }}
+            style={{ padding: '8px 20px', fontWeight: 800, opacity: allR1Filled ? 1 : 0.4 }}
             disabled={!allR1Filled || locking}
             onClick={lockBracket}
           >
@@ -410,8 +396,8 @@ export default function BracketTab({ battle, crews }) {
       )}
 
       {bracketLocked && !champion && (
-        <div className="alert-ok" style={{ marginBottom: 20 }}>
-          🚀 Battle lancé — cliquez sur une équipe pour déclarer le vainqueur d'un match. Bouton ↩ pour annuler.
+        <div className="alert-ok" style={{ marginBottom: 10, fontSize: 12, padding: '8px 14px' }}>
+          🚀 Battle lancé — cliquez sur une équipe pour déclarer le vainqueur. Bouton ↩ pour annuler.
         </div>
       )}
 
@@ -419,48 +405,21 @@ export default function BracketTab({ battle, crews }) {
       {champion && (
         <div style={{
           background: 'linear-gradient(135deg, #2d1800, #1a1200)',
-          border: '1px solid var(--gold)', borderRadius: 10,
-          padding: '20px 24px', marginBottom: 20, textAlign: 'center',
+          border: '1px solid var(--gold)', borderRadius: 8,
+          padding: '12px 20px', marginBottom: 12, textAlign: 'center',
         }}>
-          <div style={{ fontSize: 11, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 6 }}>🏆 Champion</div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--gold)', textTransform: 'uppercase' }}>{champion.name}</div>
-          {champion.sticker && <div style={{ color: 'var(--gold)', opacity: .6, marginTop: 4, fontSize: 13 }}>{champion.sticker}</div>}
+          <div style={{ fontSize: 10, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 4 }}>🏆 Champion</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--gold)', textTransform: 'uppercase' }}>{champion.name}</div>
         </div>
       )}
 
       {/* ── Bouton impression ── */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
         <button className="btn btn-ghost btn-sm" onClick={printBracket}>🖨 Imprimer le bracket</button>
       </div>
 
-      {/* ══════════════════════════════════════
-          LAYOUT BRACKET EN ARBRE SYMÉTRIQUE
-          LEFT: R1(1-4) QF(1-2) SF(1)
-          CENTER: Finale
-          RIGHT: SF(2) QF(3-4) R1(5-8)
-      ══════════════════════════════════════ */}
-      <div style={{ overflowX: 'auto', paddingBottom: 16 }}>
-
-        {/* En-têtes de colonnes */}
-        <div style={{ display: 'flex', marginBottom: 10 }}>
-          {[
-            { label: 'TOP 16', w: COL },
-            { label: 'TOP 8',  w: COL },
-            { label: 'Demi-finales', w: COL },
-            { label: '⚡ Finale ⚡', w: COL },
-            { label: 'Demi-finales', w: COL },
-            { label: 'TOP 8',  w: COL },
-            { label: 'TOP 16', w: COL },
-          ].map(({ label, w }, i) => (
-            <div key={i} style={{
-              width: w, flexShrink: 0, textAlign: 'center',
-              fontSize: 10, fontWeight: 700, color: i === 3 ? 'var(--gold)' : 'var(--text3)',
-              textTransform: 'uppercase', letterSpacing: '1px',
-            }}>{label}</div>
-          ))}
-        </div>
-
-        {/* Corps du bracket */}
+      {/* ══════ BRACKET ══════ */}
+      <div style={{ paddingBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
 
           {/* ── GAUCHE R1 — matchs 1,2,3,4 ── */}
@@ -482,11 +441,11 @@ export default function BracketTab({ battle, crews }) {
 
           {/* ── FINALE ── */}
           <div style={{ width: COL, flexShrink: 0, paddingLeft: CONN, paddingRight: CONN, paddingTop: R3_PT }}>
-            <div style={{ position: 'relative', width: 175 }}>
+            <div style={{ position: 'relative', width: CARD_W }}>
               <div style={{
                 background: 'var(--surface)', border: '1px solid var(--gold)',
                 borderRadius: 6, overflow: 'hidden',
-                boxShadow: '0 0 12px rgba(212,160,23,.15)',
+                boxShadow: '0 0 10px rgba(212,160,23,.15)',
               }}>
                 {renderSlot(4, 1, 'team1')}
                 <div style={{ height: 1, background: 'var(--border)' }} />
@@ -496,7 +455,7 @@ export default function BracketTab({ battle, crews }) {
                 <button onClick={() => undoWinner(4, 1)} style={{
                   position: 'absolute', top: 2, right: 2, zIndex: 10,
                   background: 'rgba(0,0,0,.6)', border: '1px solid var(--border2)',
-                  borderRadius: 4, padding: '1px 5px', fontSize: 9, color: 'var(--text3)', cursor: 'pointer',
+                  borderRadius: 4, padding: '1px 4px', fontSize: 8, color: 'var(--text3)', cursor: 'pointer',
                 }}>↩</button>
               )}
             </div>
