@@ -1,20 +1,31 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-// ── Constantes — style flat bracket compact
-const SLOT_H  = 20            // hauteur d'un slot
-const MATCH_H = SLOT_H * 2 + 1  // 41px (2 slots + 1px séparateur)
-const R1_GAP  = 4             // espace entre matchs dans un pair
-const CONN    = 10            // longueur des connecteurs
-const CARD_W  = 108           // largeur des cartes
+// ── Constantes bracket flat (style référence)
+const TH   = 22    // hauteur d'une boîte équipe
+const TW   = 88    // largeur d'une boîte équipe
+const GI   = 5     // espace entre team1 et team2 dans le même match
+const GB   = 10    // espace entre deux matchs dans un pair
+const ARM  = 8     // bras horizontal (boîte → vertical bracket)
+const OUT  = 6     // bras de sortie (milieu vertical → col suivante)
+const CONN = ARM + OUT  // = 14, padding de chaque côté dans la colonne
 
-// Calculs d'alignement
-// R1 exits: M1=20, M2=41+4+20=65 → mid=42.5 → R2_PT=42.5-20=22
-const R2_PT  = 22
-// R1 P2 starts at 86+4=90, P2_M1_exit=110, P2_M2_exit=155, mid=132.5 → R2_M2_top=112.5 → R2_GAP=112.5-22-41=49
-const R2_GAP = 49
-// R2 exits: M1=22+20=42, M2=22+41+49+20=132 → mid=87 → R3_PT=87-20=67
-const R3_PT  = 67
+// Milieu d'un match (entre T1 center et T2 center)
+// T1_CY = TH/2 = 11, T2_CY = TH+GI+TH/2 = 38, MID = 24.5
+const MID_Y    = Math.round((TH / 2 + TH + GI + TH / 2) / 2)  // = 24
+const MATCH_H  = TH * 2 + GI                                    // = 49
+
+// Alignements calculés
+// R1 pair: M1_mid=24, M2_mid=83 → pair_mid=53.5 → R2_PT=53.5-24≈30
+const R2_PT  = 30
+// R1 P2 starts at 118, P2_mid=171.5 → R2_M2_top=148, R2_M1_bottom=79 → R2_GAP=69
+const R2_GAP = 69
+// R2 M1_mid=54, M2_mid=172 → SF_mid=113 → R3_PT=89
+const R3_PT  = 89
+
+const COL  = CONN * 2 + TW  // = 116px par colonne → 7×116 = 812px total
+
+const LC = '#505050'  // couleur des lignes de bracket
 
 const emptyBracket = () => {
   const b = {}
@@ -68,14 +79,11 @@ export default function BracketTab({ battle, crews }) {
       slots.forEach(s => {
         if (!newB[s.round]?.[s.match_number]) return
         const slotKey = s.position === 1 ? 'team1' : 'team2'
-        if (s.is_winner) {
-          newB[s.round][s.match_number].winner = slotKey
-        } else {
-          newB[s.round][s.match_number][slotKey] = {
-            id: s.crew_id || ('g_'+s.id), name: s.team_name,
-            sticker: s.sticker, cypher: s.cypher, isGuest: s.is_guest,
-            total: s.crew_id ? (totalsMap[s.crew_id] ?? null) : null,
-          }
+        if (s.is_winner) newB[s.round][s.match_number].winner = slotKey
+        else newB[s.round][s.match_number][slotKey] = {
+          id: s.crew_id || ('g_'+s.id), name: s.team_name,
+          sticker: s.sticker, cypher: s.cypher, isGuest: s.is_guest,
+          total: s.crew_id ? (totalsMap[s.crew_id] ?? null) : null,
         }
       })
       setBracket(newB)
@@ -86,17 +94,14 @@ export default function BracketTab({ battle, crews }) {
   const placeTeam = async (team) => {
     if (!selecting) return
     const { round, match, slot } = selecting
-    setBracket(prev => ({
-      ...prev,
-      [round]: { ...prev[round], [match]: { ...prev[round][match], [slot]: team } }
-    }))
+    setBracket(prev => ({ ...prev, [round]: { ...prev[round], [match]: { ...prev[round][match], [slot]: team } } }))
     setSelecting(null)
     await supabase.from('bracket_slots').upsert({
       battle_id: battle.id, round, match_number: match,
-      position:  slot === 'team1' ? 1 : 2,
-      crew_id:   team.isGuest ? null : team.id,
+      position: slot === 'team1' ? 1 : 2,
+      crew_id: team.isGuest ? null : team.id,
       team_name: team.name, sticker: team.sticker||null,
-      cypher:    team.cypher||null, is_guest: team.isGuest||false, is_winner: false,
+      cypher: team.cypher||null, is_guest: team.isGuest||false, is_winner: false,
     }, { onConflict: 'battle_id,round,match_number,position' })
   }
 
@@ -106,16 +111,14 @@ export default function BracketTab({ battle, crews }) {
     const newB = JSON.parse(JSON.stringify(bracket))
     newB[round][match].winner = slot
     if (round < 4) {
-      const nextRound = round + 1
-      const nextMatch = Math.ceil(match / 2)
-      const nextSlot  = match % 2 === 1 ? 'team1' : 'team2'
-      newB[nextRound][nextMatch][nextSlot] = winner
+      const nr = round + 1, nm = Math.ceil(match / 2), ns = match % 2 === 1 ? 'team1' : 'team2'
+      newB[nr][nm][ns] = winner
       await supabase.from('bracket_slots').upsert({
-        battle_id: battle.id, round: nextRound, match_number: nextMatch,
-        position:  nextSlot === 'team1' ? 1 : 2,
-        crew_id:   winner.isGuest ? null : winner.id,
+        battle_id: battle.id, round: nr, match_number: nm,
+        position: ns === 'team1' ? 1 : 2,
+        crew_id: winner.isGuest ? null : winner.id,
         team_name: winner.name, sticker: winner.sticker||null,
-        cypher:    winner.cypher||null, is_guest: winner.isGuest||false, is_winner: false,
+        cypher: winner.cypher||null, is_guest: winner.isGuest||false, is_winner: false,
       }, { onConflict: 'battle_id,round,match_number,position' })
     }
     setBracket(newB)
@@ -127,23 +130,20 @@ export default function BracketTab({ battle, crews }) {
   const undoWinner = async (round, match) => {
     const m = bracket[round][match]
     if (!m.winner) return
-    const winnerSlot = m.winner
+    const ws = m.winner
     const newB = JSON.parse(JSON.stringify(bracket))
     newB[round][match].winner = null
     await supabase.from('bracket_slots').update({ is_winner: false })
       .eq('battle_id', battle.id).eq('round', round).eq('match_number', match)
-      .eq('position', winnerSlot === 'team1' ? 1 : 2)
+      .eq('position', ws === 'team1' ? 1 : 2)
     if (round < 4) {
-      const nextRound = round + 1
-      const nextMatch = Math.ceil(match / 2)
-      const nextSlot  = match % 2 === 1 ? 'team1' : 'team2'
-      newB[nextRound][nextMatch][nextSlot] = null
-      newB[nextRound][nextMatch].winner = null
+      const nr = round + 1, nm = Math.ceil(match / 2), ns = match % 2 === 1 ? 'team1' : 'team2'
+      newB[nr][nm][ns] = null
+      newB[nr][nm].winner = null
       await supabase.from('bracket_slots').delete()
-        .eq('battle_id', battle.id).eq('round', nextRound)
-        .eq('match_number', nextMatch).eq('position', nextSlot === 'team1' ? 1 : 2)
+        .eq('battle_id', battle.id).eq('round', nr).eq('match_number', nm).eq('position', ns === 'team1' ? 1 : 2)
       await supabase.from('bracket_slots').update({ is_winner: false })
-        .eq('battle_id', battle.id).eq('round', nextRound).eq('match_number', nextMatch)
+        .eq('battle_id', battle.id).eq('round', nr).eq('match_number', nm)
     }
     setBracket(newB)
   }
@@ -158,172 +158,138 @@ export default function BracketTab({ battle, crews }) {
   const allR1Filled = Object.values(bracket[1]).every(m => m.team1 && m.team2)
   const champion = bracket[4][1].winner ? bracket[4][1][bracket[4][1].winner] : null
 
-  const printBracket = () => {
-    const S = 34, M = 69, G1 = 8, G2 = 77
-    const PT2 = Math.round((M + G1) / 2)
-    const PT3 = Math.round(PT2 + (M + G2) / 2)
-    const CW = 138, CONN_P = 11, COL_P = CW + CONN_P * 2
-    const teamRow = (t, isW, isL) => {
-      if (!t) return `<div class="slot"><span class="name" style="color:#ccc">—</span></div>`
-      return `<div class="slot${isW ? ' win' : isL ? ' los' : ''}">
-        ${t.sticker ? `<span class="stk">${t.sticker}</span>` : ''}
-        <span class="name">${t.name}${t.total != null ? ` <span class="pts">${t.total}p</span>` : ''}</span>
-        ${isW ? '<span class="tick">✓</span>' : ''}
-      </div>`
-    }
-    const card = (round, match, side, isF = false) => {
-      const m = bracket[round]?.[match]
-      if (!m) return ''
-      const t1W = m.winner === 'team1', t2W = m.winner === 'team2'
-      const hConn = side === 'left'
-        ? `<div class="ch" style="right:${-CONN_P}px;top:${S/2}px;width:${CONN_P}px"></div>`
-        : side === 'right'
-          ? `<div class="ch" style="left:${-CONN_P}px;top:${S/2}px;width:${CONN_P}px"></div>`
-          : ''
-      return `<div style="position:relative"><div class="match${isF?' final':''}">
-        ${teamRow(m.team1,t1W,t2W)}<div class="div"></div>${teamRow(m.team2,t2W,t1W)}
-      </div>${hConn}</div>`
-    }
-    const pair = (round, mA, mB, side, gap) => {
-      const vH = M + gap
-      const vc = side === 'left'
-        ? `<div class="cv" style="right:${-CONN_P}px;top:${S/2}px;height:${vH}px"></div>`
-        : `<div class="cv" style="left:${-CONN_P}px;top:${S/2}px;height:${vH}px"></div>`
-      return `<div style="position:relative">${card(round,mA,side)}<div style="height:${gap}px"></div>${card(round,mB,side)}${vc}</div>`
-    }
-    const hdrs = ['TOP 16','TOP 8','Demi-finales','⚡ Finale ⚡','Demi-finales','TOP 8','TOP 16']
-    const hRow = hdrs.map(h => `<div style="width:${COL_P}px;flex-shrink:0;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#666">${h}</div>`).join('')
-    const cols = [
-      `<div style="width:${COL_P}px;flex-shrink:0;padding:0 ${CONN_P}px">${pair(1,1,2,'left',G1)}<div style="height:${G1}px"></div>${pair(1,3,4,'left',G1)}</div>`,
-      `<div style="width:${COL_P}px;flex-shrink:0;padding:${PT2}px ${CONN_P}px 0">${pair(2,1,2,'left',G2)}</div>`,
-      `<div style="width:${COL_P}px;flex-shrink:0;padding:${PT3}px ${CONN_P}px 0">${card(3,1,'left')}</div>`,
-      `<div style="width:${COL_P}px;flex-shrink:0;padding:${PT3}px ${CONN_P}px 0">${card(4,1,'none',true)}</div>`,
-      `<div style="width:${COL_P}px;flex-shrink:0;padding:${PT3}px ${CONN_P}px 0">${card(3,2,'right')}</div>`,
-      `<div style="width:${COL_P}px;flex-shrink:0;padding:${PT2}px ${CONN_P}px 0">${pair(2,3,4,'right',G2)}</div>`,
-      `<div style="width:${COL_P}px;flex-shrink:0;padding:0 ${CONN_P}px">${pair(1,5,6,'right',G1)}<div style="height:${G1}px"></div>${pair(1,7,8,'right',G1)}</div>`,
-    ].join('')
-    const champ = champion ? `<div style="text-align:center;margin-top:12px;padding:6px;background:#fffbea;border:2px solid gold;border-radius:4px;font-weight:900;font-size:13px;text-transform:uppercase">🏆 ${champion.name}</div>` : ''
-    const html = `<!DOCTYPE html><html><head><title>${battle.name} — Bracket</title>
-      <style>@page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0}
-      .match{background:#fff;border:1px solid #ccc;border-radius:3px;overflow:hidden;width:${CW}px}
-      .match.final{border:2px solid goldenrod}.slot{height:${S}px;display:flex;align-items:center;padding:0 5px;gap:3px;font-size:9px}
-      .slot.win{background:#e8f5e9}.slot.los{opacity:.38;text-decoration:line-through}
-      .name{flex:1;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-transform:uppercase}
-      .pts{font-size:8px;color:#999;font-weight:400}.stk{font-size:8px;font-weight:800;color:#777;min-width:20px;flex-shrink:0}
-      .tick{color:#2e7d32;font-weight:900;font-size:11px;flex-shrink:0}.div{height:1px;background:#e0e0e0}
-      .ch{position:absolute;height:1px;background:#aaa}.cv{position:absolute;width:1px;background:#aaa}
-      @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
-    </head><body>
-      <div style="text-align:center;margin-bottom:8px">
-        <div style="font-size:15px;font-weight:900;text-transform:uppercase">${battle.name}</div>
-        <div style="font-size:9px;color:#777;margin-top:2px">TOP 16 Knock-Out — ${new Date().toLocaleDateString('fr-FR')}</div>
-      </div>
-      <div style="display:flex;margin-bottom:5px">${hRow}</div>
-      <div style="display:flex;align-items:flex-start">${cols}</div>
-      ${champ}
-    </body></html>`
-    const w = window.open('', '_blank')
-    if (!w) { alert('Autorisez les popups'); return }
-    w.document.write(html); w.document.close(); w.print()
-  }
-
-  // ── Slot : rangée plate avec nom équipe
-  const renderSlot = (round, match, slotKey, side) => {
+  // ─── Rendu d'une boîte équipe individuelle ───────────────────────────────────
+  const renderTeamBox = (round, match, slotKey, side) => {
     const m = bracket[round][match]
     const team = m[slotKey]
     const isWinner = m.winner === slotKey
     const isLoser  = m.winner && m.winner !== slotKey
-    const isFinale = round === 4
+    const isR1     = round === 1
     const canPlace   = !bracketLocked && round === 1
     const canDeclare = bracketLocked && !m.winner && m.team1 && m.team2
 
     return (
       <div
         style={{
-          height: SLOT_H, display: 'flex', alignItems: 'center', gap: 4,
-          paddingLeft: side === 'right' ? 5 : 4, paddingRight: side === 'left' ? 4 : 5,
-          background: isWinner ? '#0d2d14' : 'transparent',
+          height: TH, display: 'flex', alignItems: 'center', gap: 4,
+          paddingLeft: 5, paddingRight: 4,
+          background: isWinner ? '#122a12' : isR1 ? '#202020' : '#141414',
+          border: `1px solid ${isWinner ? '#1e4a1e' : isR1 ? '#363636' : '#222'}`,
+          borderRadius: 2, overflow: 'hidden',
+          opacity: isLoser ? 0.22 : 1,
           cursor: canDeclare ? 'pointer' : canPlace ? 'pointer' : 'default',
-          overflow: 'hidden',
         }}
         onClick={
           canDeclare ? () => declareWinner(round, match, slotKey)
-          : canPlace   ? () => setSelecting({ round, match, slot: slotKey })
+          : canPlace ? () => setSelecting({ round, match, slot: slotKey })
           : undefined
         }
       >
         {team?.sticker && (
-          <span style={{
-            fontSize: 7, fontWeight: 800, flexShrink: 0,
-            color: team.cypher === 'A' ? '#666' : '#cc0000',
-            textDecoration: isLoser ? 'line-through' : 'none',
-          }}>{team.sticker}</span>
+          <span style={{ fontSize: 7, fontWeight: 800, flexShrink: 0, color: team.cypher === 'A' ? '#666' : '#cc0000' }}>
+            {team.sticker}
+          </span>
         )}
         {team?.isGuest && <span style={{ fontSize: 8, color: 'var(--gold)', flexShrink: 0 }}>⭐</span>}
         <span style={{
-          flex: 1, fontSize: isFinale ? 10 : 9,
-          fontWeight: team ? 700 : 400,
-          overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+          flex: 1, fontSize: 9, fontWeight: team ? 700 : 400,
           textTransform: team ? 'uppercase' : 'none',
-          color: isWinner ? 'var(--green)' : isLoser ? '#3a3a3a' : team ? 'var(--text)' : 'var(--text3)',
-          textDecoration: isLoser ? 'line-through' : 'none',
+          color: isWinner ? '#6aff6a' : team ? '#d0d0d0' : '#444',
+          overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
         }}>
-          {team ? team.name : canPlace ? '+ Placer' : '—'}
+          {team ? team.name : (canPlace ? '+ Placer' : '—')}
         </span>
         {team?.total != null && (
-          <span style={{ fontSize: 7, color: '#555', flexShrink: 0 }}>{team.total}p</span>
+          <span style={{ fontSize: 7, color: '#505050', flexShrink: 0 }}>{team.total}p</span>
         )}
-        {isWinner && <span style={{ fontSize: 8, color: 'var(--green)', fontWeight: 900, flexShrink: 0 }}>✓</span>}
+        {isWinner && <span style={{ fontSize: 8, color: '#6aff6a', flexShrink: 0, marginLeft: 2 }}>✓</span>}
       </div>
     )
   }
 
-  // ── Match : carte plate avec connecteurs
+  // ─── Rendu d'un match : 2 boîtes séparées + lignes de bracket ────────────────
   const renderMatch = (round, match, side) => {
     const m = bracket[round][match]
     const isFinale = round === 4
     const canUndo = bracketLocked && !!m.winner
-    const lineColor = '#3a3a3a'
+
+    // Finale : boîte partagée dorée
+    if (isFinale) {
+      return (
+        <div key={`r${round}-m${match}`} style={{ position: 'relative', width: TW }}>
+          {canUndo && (
+            <button onClick={() => undoWinner(round, match)} style={{
+              position: 'absolute', top: 2, right: 2, zIndex: 10,
+              background: 'rgba(0,0,0,.8)', border: '1px solid #444',
+              borderRadius: 3, padding: '0 3px', fontSize: 7, color: '#888', cursor: 'pointer', lineHeight: '14px',
+            }}>↩</button>
+          )}
+          <div style={{ border: '1px solid var(--gold)', borderRadius: 3, overflow: 'hidden', background: 'var(--surface)', boxShadow: '0 0 10px rgba(212,160,23,.18)' }}>
+            {renderTeamBox(round, match, 'team1', 'none')}
+            <div style={{ height: 1, background: '#333' }} />
+            {renderTeamBox(round, match, 'team2', 'none')}
+          </div>
+        </div>
+      )
+    }
+
+    // T1 center, T2 center, midpoint
+    const T1_Y = TH / 2 - 0.5
+    const T2_Y = TH + GI + TH / 2 - 0.5
 
     return (
-      <div key={`${round}-${match}`} style={{ position: 'relative', width: CARD_W }}>
+      <div key={`r${round}-m${match}`} style={{ position: 'relative', width: TW }}>
         {canUndo && (
           <button onClick={() => undoWinner(round, match)} style={{
             position: 'absolute', top: 1,
             [side === 'right' ? 'left' : 'right']: side === 'right' ? -18 : 2,
-            zIndex: 10, background: 'rgba(0,0,0,.7)', border: '1px solid #333',
+            zIndex: 10, background: 'rgba(0,0,0,.8)', border: '1px solid #333',
             borderRadius: 3, padding: '0 3px', fontSize: 7, color: '#777', cursor: 'pointer', lineHeight: '14px',
           }}>↩</button>
         )}
 
-        {/* Carte */}
-        <div style={{
-          border: isFinale ? '1px solid var(--gold)' : '1px solid #2a2a2a',
-          borderRadius: 3, overflow: 'hidden',
-          background: isFinale ? 'var(--surface)' : '#0e0e0e',
-          boxShadow: isFinale ? '0 0 8px rgba(212,160,23,.2)' : 'none',
-        }}>
-          {renderSlot(round, match, 'team1', side)}
-          <div style={{ height: 1, background: '#222' }} />
-          {renderSlot(round, match, 'team2', side)}
-        </div>
+        {/* Boîte équipe 1 */}
+        {renderTeamBox(round, match, 'team1', side)}
+        <div style={{ height: GI }} />
+        {/* Boîte équipe 2 */}
+        {renderTeamBox(round, match, 'team2', side)}
 
-        {/* Connecteur horizontal sortant */}
-        {!isFinale && side === 'left' && (
-          <div style={{ position: 'absolute', right: -CONN, top: SLOT_H - 0.5, width: CONN, height: 1, background: lineColor }} />
+        {/* ── Lignes de bracket ── */}
+        {side === 'left' && (
+          <>
+            {/* Bras horizontal T1 */}
+            <div style={{ position: 'absolute', left: TW, top: T1_Y, width: ARM, height: 1, background: LC }} />
+            {/* Bras horizontal T2 */}
+            <div style={{ position: 'absolute', left: TW, top: T2_Y, width: ARM, height: 1, background: LC }} />
+            {/* Ligne verticale reliant T1 et T2 */}
+            <div style={{ position: 'absolute', left: TW + ARM - 1, top: T1_Y, height: T2_Y - T1_Y + 1, width: 1, background: LC }} />
+            {/* Ligne de sortie (milieu → colonne suivante) */}
+            <div style={{ position: 'absolute', left: TW + ARM, top: MID_Y - 0.5, width: OUT, height: 1, background: LC }} />
+            {/* Ligne entrante depuis colonne précédente (round > 1) */}
+            {round > 1 && (
+              <div style={{ position: 'absolute', right: TW, top: MID_Y - 0.5, width: CONN - ARM, height: 1, background: LC }} />
+            )}
+          </>
         )}
-        {!isFinale && side === 'right' && (
-          <div style={{ position: 'absolute', left: -CONN, top: SLOT_H - 0.5, width: CONN, height: 1, background: lineColor }} />
+        {side === 'right' && (
+          <>
+            <div style={{ position: 'absolute', right: TW, top: T1_Y, width: ARM, height: 1, background: LC }} />
+            <div style={{ position: 'absolute', right: TW, top: T2_Y, width: ARM, height: 1, background: LC }} />
+            <div style={{ position: 'absolute', right: TW + ARM - 1, top: T1_Y, height: T2_Y - T1_Y + 1, width: 1, background: LC }} />
+            <div style={{ position: 'absolute', right: TW + ARM, top: MID_Y - 0.5, width: OUT, height: 1, background: LC }} />
+            {round > 1 && (
+              <div style={{ position: 'absolute', left: TW, top: MID_Y - 0.5, width: CONN - ARM, height: 1, background: LC }} />
+            )}
+          </>
         )}
       </div>
     )
   }
 
-  // ── Paire de matchs avec connecteur vertical
-  const renderPair = (round, mA, mB, side, gap = R1_GAP) => {
-    const vTop    = SLOT_H / 2
-    const vHeight = MATCH_H + gap + SLOT_H / 2 - SLOT_H / 2
-    const lineColor = '#3a3a3a'
+  // ─── Paire de 2 matchs + connecteur vertical inter-matchs ────────────────────
+  const renderPair = (round, mA, mB, side, gap = GB) => {
+    const MID_A = MID_Y  // milieu de match A (relatif à renderPair)
+    const MID_B = MATCH_H + gap + MID_Y  // milieu de match B
 
     return (
       <div style={{ position: 'relative' }}>
@@ -331,15 +297,63 @@ export default function BracketTab({ battle, crews }) {
         <div style={{ height: gap }} />
         {renderMatch(round, mB, side)}
 
-        {/* Connecteur vertical */}
+        {/* Ligne verticale reliant les sorties des deux matchs */}
         {side === 'left' && (
-          <div style={{ position: 'absolute', right: -CONN, top: SLOT_H - 0.5, height: MATCH_H + gap, width: 1, background: lineColor }} />
+          <div style={{ position: 'absolute', left: TW + ARM - 1, top: MID_A, height: MID_B - MID_A, width: 1, background: LC }} />
         )}
         {side === 'right' && (
-          <div style={{ position: 'absolute', left: -CONN, top: SLOT_H - 0.5, height: MATCH_H + gap, width: 1, background: lineColor }} />
+          <div style={{ position: 'absolute', right: TW + ARM - 1, top: MID_A, height: MID_B - MID_A, width: 1, background: LC }} />
         )}
       </div>
     )
+  }
+
+  // ─── Impression ──────────────────────────────────────────────────────────────
+  const printBracket = () => {
+    const S = 30, M = 61, G1 = 8, G2 = 77
+    const PT2 = Math.round((M + G1) / 2), PT3 = Math.round(PT2 + (M + G2) / 2)
+    const CW = 120, CN = 10, CP = CW + CN * 2
+    const row = (t, w, l) => !t
+      ? `<div class="slot"><span class="nm" style="color:#aaa">—</span></div>`
+      : `<div class="slot${w?' win':l?' los':''}"><span class="stk">${t.sticker||''}</span><span class="nm">${t.name}${t.total!=null?` <span class="pts">${t.total}p</span>`:''}</span>${w?'<span class="ck">✓</span>':''}</div>`
+    const card = (r, m, s, f=false) => {
+      const mm = bracket[r]?.[m]; if(!mm) return ''
+      const t1W=mm.winner==='team1',t2W=mm.winner==='team2'
+      const hc = s==='left'?`<div class="ch" style="right:${-CN}px;top:${S/2}px;width:${CN}px"></div>`:s==='right'?`<div class="ch" style="left:${-CN}px;top:${S/2}px;width:${CN}px"></div>`:''
+      return `<div style="position:relative"><div class="mc${f?' fn':''}">${row(mm.team1,t1W,t2W)}<div class="dv"></div>${row(mm.team2,t2W,t1W)}</div>${hc}</div>`
+    }
+    const pair = (r, a, b, s, g) => {
+      const vH=M+g; const vc=s==='left'?`<div class="cv" style="right:${-CN}px;top:${S/2}px;height:${vH}px"></div>`:`<div class="cv" style="left:${-CN}px;top:${S/2}px;height:${vH}px"></div>`
+      return `<div style="position:relative">${card(r,a,s)}<div style="height:${g}px"></div>${card(r,b,s)}${vc}</div>`
+    }
+    const cols = [
+      `<div style="width:${CP}px;flex-shrink:0;padding:0 ${CN}px">${pair(1,1,2,'left',G1)}<div style="height:${G1}px"></div>${pair(1,3,4,'left',G1)}</div>`,
+      `<div style="width:${CP}px;flex-shrink:0;padding:${PT2}px ${CN}px 0">${pair(2,1,2,'left',G2)}</div>`,
+      `<div style="width:${CP}px;flex-shrink:0;padding:${PT3}px ${CN}px 0">${card(3,1,'left')}</div>`,
+      `<div style="width:${CP}px;flex-shrink:0;padding:${PT3}px ${CN}px 0">${card(4,1,'none',true)}</div>`,
+      `<div style="width:${CP}px;flex-shrink:0;padding:${PT3}px ${CN}px 0">${card(3,2,'right')}</div>`,
+      `<div style="width:${CP}px;flex-shrink:0;padding:${PT2}px ${CN}px 0">${pair(2,3,4,'right',G2)}</div>`,
+      `<div style="width:${CP}px;flex-shrink:0;padding:0 ${CN}px">${pair(1,5,6,'right',G1)}<div style="height:${G1}px"></div>${pair(1,7,8,'right',G1)}</div>`,
+    ].join('')
+    const html = `<!DOCTYPE html><html><head><title>${battle.name} — Bracket</title>
+<style>@page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0}
+.mc{background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;width:${CW}px}
+.mc.fn{border:2px solid goldenrod}
+.slot{height:${S}px;display:flex;align-items:center;padding:0 5px;gap:3px;font-size:9px}
+.slot.win{background:#e8f5e9}.slot.los{opacity:.3;text-decoration:line-through}
+.nm{flex:1;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-transform:uppercase}
+.pts{font-size:8px;color:#999;font-weight:400}.stk{font-size:8px;font-weight:800;color:#777;min-width:20px}
+.ck{color:#2e7d32;font-weight:900}.dv{height:1px;background:#e0e0e0}
+.ch{position:absolute;height:1px;background:#999}.cv{position:absolute;width:1px;background:#999}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+</head><body>
+<div style="text-align:center;margin-bottom:8px"><div style="font-size:14px;font-weight:900;text-transform:uppercase">${battle.name}</div>
+<div style="font-size:9px;color:#777">TOP 16 — ${new Date().toLocaleDateString('fr-FR')}</div></div>
+<div style="display:flex;align-items:flex-start">${cols}</div>
+${champion?`<div style="text-align:center;margin-top:10px;padding:6px;background:#fffbea;border:2px solid gold;border-radius:4px;font-weight:900;font-size:12px;text-transform:uppercase">🏆 ${champion.name}</div>`:''}
+</body></html>`
+    const w = window.open('', '_blank'); if (!w) { alert('Autorisez les popups'); return }
+    w.document.write(html); w.document.close(); w.print()
   }
 
   if (loading) return <div className="caption" style={{ padding: 24 }}>Chargement…</div>
@@ -352,8 +366,6 @@ export default function BracketTab({ battle, crews }) {
       </div>
     )
   }
-
-  const COL = CARD_W + CONN * 2
 
   return (
     <div>
@@ -404,13 +416,13 @@ export default function BracketTab({ battle, crews }) {
         <button className="btn btn-ghost btn-sm" onClick={printBracket}>🖨 Imprimer</button>
       </div>
 
-      {/* ══════ BRACKET ARBRE ══════ */}
-      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+      {/* ══════ BRACKET ══════ */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', userSelect: 'none' }}>
 
         {/* ── GAUCHE R1 — 1,2,3,4 ── */}
         <div style={{ width: COL, flexShrink: 0, paddingLeft: CONN, paddingRight: CONN }}>
           {renderPair(1, 1, 2, 'left')}
-          <div style={{ height: R1_GAP }} />
+          <div style={{ height: GB }} />
           {renderPair(1, 3, 4, 'left')}
         </div>
 
@@ -426,24 +438,7 @@ export default function BracketTab({ battle, crews }) {
 
         {/* ── FINALE ── */}
         <div style={{ width: COL, flexShrink: 0, paddingLeft: CONN, paddingRight: CONN, paddingTop: R3_PT }}>
-          <div style={{ position: 'relative', width: CARD_W }}>
-            <div style={{
-              background: 'var(--surface)', border: '1px solid var(--gold)',
-              borderRadius: 4, overflow: 'hidden',
-              boxShadow: '0 0 10px rgba(212,160,23,.15)',
-            }}>
-              {renderSlot(4, 1, 'team1', 'none')}
-              <div style={{ height: 1, background: '#333' }} />
-              {renderSlot(4, 1, 'team2', 'none')}
-            </div>
-            {bracket[4][1].winner && (
-              <button onClick={() => undoWinner(4, 1)} style={{
-                position: 'absolute', top: 2, right: 2, zIndex: 10,
-                background: 'rgba(0,0,0,.7)', border: '1px solid #333',
-                borderRadius: 3, padding: '0 3px', fontSize: 7, color: '#777', cursor: 'pointer', lineHeight: '14px',
-              }}>↩</button>
-            )}
-          </div>
+          {renderMatch(4, 1, 'none')}
         </div>
 
         {/* ── DROITE SF — 2 ── */}
@@ -459,7 +454,7 @@ export default function BracketTab({ battle, crews }) {
         {/* ── DROITE R1 — 5,6,7,8 ── */}
         <div style={{ width: COL, flexShrink: 0, paddingLeft: CONN, paddingRight: CONN }}>
           {renderPair(1, 5, 6, 'right')}
-          <div style={{ height: R1_GAP }} />
+          <div style={{ height: GB }} />
           {renderPair(1, 7, 8, 'right')}
         </div>
 
@@ -467,7 +462,7 @@ export default function BracketTab({ battle, crews }) {
 
       {/* ── Modale sélection équipe ── */}
       {selecting && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
           <div className="card" style={{ width: '100%', maxWidth: 440 }}>
             <div className="flex-between" style={{ marginBottom: 14 }}>
               <div className="title-sm">Choisir une équipe</div>
