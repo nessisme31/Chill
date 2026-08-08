@@ -151,6 +151,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   .bx-b{background:#cc0000;margin-bottom:20px;flex-shrink:0}
   .brow{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 22px}
   .brow+.brow{margin-top:4px}
+  .bx-b .brow+.brow{border-top:4px solid rgba(0,0,0,.25)}
   .brow-a{background:#fff}
   .bstk-a{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:#888;flex-shrink:0;min-width:36px}
   .bstk-b{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:rgba(255,255,255,.5);flex-shrink:0;min-width:36px}
@@ -320,7 +321,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
             background: showAssign ? 'var(--surface2)' : judges.some(j => assignments[j.id]) ? 'var(--green-dim)' : 'var(--white)',
             color:      showAssign ? 'var(--text2)'    : judges.some(j => assignments[j.id]) ? 'var(--green)'     : '#000',
             border:     `1px solid ${showAssign ? 'var(--border2)' : judges.some(j => assignments[j.id]) ? 'var(--green-dim)' : 'transparent'}`,
-            fontWeight: 707, padding: '9px 18px',
+            fontWeight: 700, padding: '9px 18px',
           }}
           onClick={() => setShowAssign(v => !v)}
         >
