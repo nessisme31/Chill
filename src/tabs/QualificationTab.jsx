@@ -146,13 +146,12 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   .side{flex:1;padding:24px 36px;display:flex;flex-direction:column;overflow:hidden}
   .side-a{border-right:3px solid #fff}
 
-  /* ── Battle box ── */
-  .bx-a{border:3px solid #fff;margin-bottom:20px;flex-shrink:0}
-  .bx-b{background:#cc0000;margin-bottom:20px;flex-shrink:0}
+  /* ── Battle box — chaque équipe dans son propre rectangle ── */
+  .bx-a{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;flex-shrink:0}
+  .bx-b{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;flex-shrink:0}
   .brow{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 22px}
-  .brow+.brow{margin-top:4px}
-  .bx-b .brow+.brow{border-top:4px solid rgba(0,0,0,.25)}
   .brow-a{background:#fff}
+  .brow-b{background:#cc0000}
   .bstk-a{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:#888;flex-shrink:0;min-width:36px}
   .bstk-b{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:rgba(255,255,255,.5);flex-shrink:0;min-width:36px}
   .bnm-a{font-size:clamp(24px,3vw,52px);font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#000;line-height:1}
@@ -215,7 +214,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     const upcoming = pairs.slice(idx + 1, idx + 6);
 
     const rows = cur.map(t =>
-      '<div class="brow' + (isA?' brow-a':'') + '">' +
+      '<div class="brow ' + (isA?'brow-a':'brow-b') + '">' +
       '<span class="bstk-' + (isA?'a':'b') + '">' + t.sticker + '</span>' +
       '<span class="bnm-' + (isA?'a':'b') + '">' + t.name + '</span>' +
       '</div>'
