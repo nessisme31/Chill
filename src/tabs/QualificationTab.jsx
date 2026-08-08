@@ -123,10 +123,11 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     w.document.close(); w.print()
   }
 
-  // ── Mode affichage (nouvel onglet, BroadcastChannel, À suivre)
+  // ── Mode affichage (nouvel onglet, design CERCLE A/B, BroadcastChannel)
   const openDisplayMode = () => {
     const sA = sortByCypher(crews, 'A')
     const sB = sortByCypher(crews, 'B')
+    const origin = window.location.origin
 
     const html = `<!DOCTYPE html><html lang="fr"><head>
 <meta charset="UTF-8">
@@ -134,40 +135,53 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:#000;color:#fff;font-family:'Arial Black',Arial,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-  header{text-align:center;padding:12px 24px;border-bottom:2px solid #111;flex-shrink:0}
-  header h1{font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:3px}
-  header .sub{font-size:10px;color:#333;letter-spacing:2px;margin-top:2px}
+
+  /* ── Header ── */
+  .hdr{display:flex;align-items:center;padding:20px 40px;flex-shrink:0;border-bottom:2px solid #111}
+  .hdr-a{flex:1}
+  .hdr-a .lbl{display:inline-flex;align-items:center;border:3px solid #fff;padding:10px 28px}
+  .hdr-a .lbl span{font-size:clamp(26px,3.8vw,56px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:2px}
+  .hdr-logo{flex:0 0 auto;padding:0 32px;text-align:center}
+  .hdr-logo img{height:clamp(44px,6vh,80px);object-fit:contain}
+  .hdr-b{flex:1;display:flex;justify-content:flex-end}
+  .hdr-b .lbl{display:inline-flex;align-items:center;background:#cc0000;padding:10px 28px}
+  .hdr-b .lbl span{font-size:clamp(26px,3.8vw,56px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:2px}
+
+  /* ── Arena ── */
   .arena{display:flex;flex:1;overflow:hidden}
-  .side{flex:1;display:flex;flex-direction:column;align-items:center;padding:24px 20px;overflow:hidden}
-  .side.A{border-right:2px solid #111}
-  .cypher-label{font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;padding:3px 12px;border-radius:20px;margin-bottom:20px;flex-shrink:0}
-  .side.A .cypher-label{color:#666;border:1px solid #1a1a1a}
-  .side.B .cypher-label{color:#ff3333;border:1px solid #3d0000}
-  .battle{text-align:center;flex-shrink:0;width:100%}
-  .team{margin:4px 0}
-  .sticker{font-size:13px;font-weight:900;letter-spacing:2px;margin-bottom:1px}
-  .side.A .sticker{color:#444}
-  .side.B .sticker{color:#6b0000}
-  .cname{font-size:clamp(26px,3.5vw,58px);font-weight:900;text-transform:uppercase;line-height:1.05;letter-spacing:1px}
-  .side.A .cname{color:#fff}
-  .side.B .cname{color:#ff3333}
-  .vs{font-size:clamp(12px,1.5vw,22px);color:#222;font-weight:900;margin:10px 0;letter-spacing:4px}
-  .sep{width:80%;height:1px;background:#111;margin:16px auto;flex-shrink:0}
-  .suivre-block{width:100%;flex:1;overflow:hidden}
-  .suivre-title{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#2a2a2a;margin-bottom:8px;text-align:center}
-  .suivre-item{font-size:clamp(11px,1.3vw,16px);font-weight:700;text-transform:uppercase;padding:5px 8px;color:#2a2a2a;text-align:center;letter-spacing:1px}
-  .side.B .suivre-item{color:#3d0000}
-  .counter{font-size:10px;color:#1a1a1a;margin-top:8px;flex-shrink:0;letter-spacing:1px}
-  .end-msg{font-size:clamp(18px,2.5vw,36px);color:#1a1a1a;font-weight:900;text-transform:uppercase;text-align:center;letter-spacing:2px;margin-top:40px}
+  .side{flex:1;padding:24px 36px;display:flex;flex-direction:column;overflow:hidden}
+  .side-a{border-right:2px solid #111}
+
+  /* ── Battle box ── */
+  .bx-a{border:3px solid #fff;margin-bottom:20px;flex-shrink:0}
+  .bx-b{background:#cc0000;margin-bottom:20px;flex-shrink:0}
+  .brow{display:flex;align-items:center;gap:14px;padding:14px 22px}
+  .brow+.brow{border-top:2px solid rgba(0,0,0,.1)}
+  .brow-a{background:#fff}
+  .bstk-a{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:#888;flex-shrink:0;min-width:36px}
+  .bstk-b{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:rgba(255,255,255,.5);flex-shrink:0;min-width:36px}
+  .bnm-a{font-size:clamp(24px,3vw,52px);font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#000;line-height:1}
+  .bnm-b{font-size:clamp(24px,3vw,52px);font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#fff;line-height:1}
+
+  /* ── À suivre ── */
+  .st{font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;margin-bottom:8px;flex-shrink:0}
+  .sl{display:flex;flex-direction:column;gap:5px;overflow:hidden;flex:1}
+  .si-a{border:2px solid #fff;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#fff;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .si-b{border:2px solid #cc0000;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#cc0000;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .fin-a{font-size:clamp(20px,3vw,40px);font-weight:900;text-transform:uppercase;text-align:center;color:#1a1a1a;padding:40px 0;flex:1}
+  .fin-b{font-size:clamp(20px,3vw,40px);font-weight:900;text-transform:uppercase;text-align:center;color:#4d0000;padding:40px 0;flex:1}
+  .ctr{font-size:10px;color:#1a1a1a;letter-spacing:2px;margin-top:10px;flex-shrink:0;text-align:center}
 </style>
 </head><body>
-<header>
-  <h1>${battle.name}</h1>
-  <div class="sub">QUALIFICATIONS EN COURS</div>
-</header>
+<div class="hdr">
+  <div class="hdr-a"><div class="lbl"><span>CERCLE A</span></div></div>
+  <div class="hdr-logo"><img src="${origin}/CITC-Stamp-White.png" alt="CITC"></div>
+  <div class="hdr-b"><div class="lbl"><span>CERCLE B</span></div></div>
+</div>
 <div class="arena">
-  <div class="side A" id="sideA"></div>
-  <div class="side B" id="sideB"></div>
+  <div class="side side-a" id="sideA"></div>
+  <div class="side" id="sideB"></div>
 </div>
 <script>
   const crewsA = ${JSON.stringify(sA)};
@@ -191,33 +205,41 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
 
   function renderSide(side, pairs, idx) {
     const el = document.getElementById('side' + side);
-    const isB = side === 'B';
-    if (!pairs.length) { el.innerHTML = '<div class="end-msg">Aucune équipe<br>Cypher ' + side + '</div>'; return; }
-    if (idx >= pairs.length) { el.innerHTML = '<div class="end-msg">✓ Fin du<br>Cypher ' + side + '</div>'; return; }
-    const cur = pairs[idx];
-    const isTrio = cur.length === 3;
-    let battleHTML = '';
-    cur.forEach((t, i) => {
-      if (i > 0) battleHTML += '<div class="vs">VS</div>';
-      battleHTML += '<div class="team"><div class="sticker">' + t.sticker + '</div><div class="cname">' + t.name + '</div></div>';
-    });
-    const upcoming = pairs.slice(idx + 1, idx + 6);
-    let upHTML = '';
-    if (upcoming.length) {
-      upHTML = '<div class="suivre-title">À SUIVRE</div>';
-      upcoming.forEach(pair => {
-        upHTML += '<div class="suivre-item">' + pair.map(t => t.sticker + ' ' + t.name).join(' vs ') + '</div>';
-      });
+    const isA = side === 'A';
+    if (!pairs.length) {
+      el.innerHTML = '<div class="' + (isA?'fin-a':'fin-b') + '">Aucune équipe<br>Cercle ' + side + '</div>';
+      return;
     }
+    if (idx >= pairs.length) {
+      el.innerHTML = '<div class="' + (isA?'fin-a':'fin-b') + '">✓ Fin du<br>Cercle ' + side + '</div>';
+      return;
+    }
+    const cur = pairs[idx];
+    const upcoming = pairs.slice(idx + 1, idx + 6);
+
+    const rows = cur.map(t =>
+      '<div class="brow' + (isA?' brow-a':'') + '">' +
+      '<span class="bstk-' + (isA?'a':'b') + '">' + t.sticker + '</span>' +
+      '<span class="bnm-' + (isA?'a':'b') + '">' + t.name + '</span>' +
+      '</div>'
+    ).join('');
+
+    let suivre = '';
+    if (upcoming.length) {
+      suivre = '<div class="st">À SUIVRE</div><div class="sl">' +
+        upcoming.map(pair =>
+          '<div class="si-' + (isA?'a':'b') + '">' +
+          pair.map(t => t.sticker + ' ' + t.name).join(' vs ') +
+          '</div>'
+        ).join('') + '</div>';
+    }
+
     el.innerHTML =
-      '<div class="cypher-label">CYPHER ' + side + (isTrio ? ' — BATTLE À 3' : '') + '</div>' +
-      '<div class="battle">' + battleHTML + '</div>' +
-      '<div class="sep"></div>' +
-      '<div class="suivre-block">' + upHTML + '</div>' +
-      '<div class="counter">' + (idx + 1) + ' / ' + pairs.length + '</div>';
+      '<div class="bx-' + (isA?'a':'b') + '">' + rows + '</div>' +
+      suivre +
+      '<div class="ctr">' + (idx+1) + ' / ' + pairs.length + '</div>';
   }
 
-  // Écouter les mises à jour depuis la page principale
   const ch = new BroadcastChannel('citc_qualif_${battle.id}');
   ch.onmessage = (e) => {
     iA = e.data.idxA; iB = e.data.idxB;
@@ -259,7 +281,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
       </div>
 
       {crews.length > 0 && diff > 3 && (
-        <div className="alert-warn" style={{ marginBottom: 12 }}>⚠️ <strong>Déséquilibre !</strong> Différence de {diff} équipes — orientez vers le Cypher {weaker}.</div>
+        <div className="alert-warn" style={{ marginBottom: 12 }}>⚠️ <strong>Déséquilibre !</strong> Différence de {diff} équipes — orientez vers le Cercle {weaker}.</div>
       )}
       {crews.length > 0 && diff <= 3 && (
         <div className="alert-ok" style={{ marginBottom: 12 }}>✓ Cyphers équilibrés — différence de {diff} équipe(s).</div>
@@ -272,7 +294,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
           {judges.map(j => (
             <div key={j.id} className="flex-between" style={{ padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
               <span style={{ fontSize: 13 }}>{j.name}</span>
-              {assignments[j.id] && <span className={assignments[j.id] === 'A' ? 'badge-a' : 'badge-b'}>Cypher {assignments[j.id]}</span>}
+              {assignments[j.id] && <span className={assignments[j.id] === 'A' ? 'badge-a' : 'badge-b'}>Cercle {assignments[j.id]}</span>}
             </div>
           ))}
         </div>
@@ -335,7 +357,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
                     background: assignments[j.id] === v ? (v === 'A' ? 'var(--surface)' : 'var(--red-dim)') : 'transparent',
                     color: assignments[j.id] === v ? (v === 'A' ? 'var(--text)' : 'var(--red)') : 'var(--text3)',
                     border: `1px solid ${assignments[j.id] === v ? (v === 'A' ? 'var(--border)' : 'var(--red-dim)') : 'var(--border2)'}`,
-                  }} onClick={() => assignJudge(j.id, v)}>Cypher {v}</button>
+                  }} onClick={() => assignJudge(j.id, v)}>Cercle {v}</button>
                 ))}
               </div>
             </div>
@@ -357,7 +379,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
                 {/* Header */}
                 <div className="flex-between" style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: isB ? 'var(--red)' : 'var(--text2)' }}>
-                    Cypher {side}{isTrio ? ' — BATTLE À 3' : ''}
+                    Cercle {side}{isTrio ? ' — BATTLE À 3' : ''}
                   </div>
                   <div className="muted" style={{ fontSize: 11 }}>
                     {pairs.length === 0 ? '—' : idx >= pairs.length ? 'Terminé' : `${idx + 1} / ${pairs.length}`}
