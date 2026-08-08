@@ -101,7 +101,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
         <td style="border:1px solid #ddd;min-width:200px">&nbsp;</td>
       </tr>`).join('')
       return `<div>
-        <h2>${battle.name} — Cypher ${cypher}</h2>
+        <h2>${battle.name} — Cercle ${cypher}</h2>
         <p>Juges : <strong>${judgeNames}</strong> &nbsp;|&nbsp; ${new Date().toLocaleDateString('fr-FR')} &nbsp;|&nbsp; ${filtered.length} équipe(s)</p>
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
@@ -138,24 +138,24 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
 
   /* ── Header ── */
   .hdr{display:flex;align-items:center;padding:20px 40px;flex-shrink:0;border-bottom:2px solid #111}
-  .hdr-a{flex:1}
-  .hdr-a .lbl{display:inline-flex;align-items:center;border:3px solid #fff;padding:10px 28px}
-  .hdr-a .lbl span{font-size:clamp(26px,3.8vw,56px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:2px}
+  .hdr-a{flex:1;display:flex;justify-content:center}
+  .hdr-a .lbl{display:inline-flex;align-items:center;border:4px solid #fff;padding:12px 36px}
+  .hdr-a .lbl span{font-size:clamp(28px,4.2vw,62px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:3px}
   .hdr-logo{flex:0 0 auto;padding:0 32px;text-align:center}
-  .hdr-logo img{height:clamp(44px,6vh,80px);object-fit:contain}
-  .hdr-b{flex:1;display:flex;justify-content:flex-end}
-  .hdr-b .lbl{display:inline-flex;align-items:center;background:#cc0000;padding:10px 28px}
-  .hdr-b .lbl span{font-size:clamp(26px,3.8vw,56px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:2px}
+  .hdr-logo img{height:clamp(90px,13vh,160px);object-fit:contain}
+  .hdr-b{flex:1;display:flex;justify-content:center}
+  .hdr-b .lbl{display:inline-flex;align-items:center;background:#cc0000;padding:12px 36px}
+  .hdr-b .lbl span{font-size:clamp(28px,4.2vw,62px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:3px}
 
   /* ── Arena ── */
   .arena{display:flex;flex:1;overflow:hidden}
   .side{flex:1;padding:24px 36px;display:flex;flex-direction:column;overflow:hidden}
-  .side-a{border-right:2px solid #111}
+  .side-a{border-right:4px solid #fff}
 
   /* ── Battle box ── */
   .bx-a{border:3px solid #fff;margin-bottom:20px;flex-shrink:0}
   .bx-b{background:#cc0000;margin-bottom:20px;flex-shrink:0}
-  .brow{display:flex;align-items:center;gap:14px;padding:14px 22px}
+  .brow{display:flex;align-items:center;justify-content:center;gap:14px;padding:14px 22px}
   .brow+.brow{border-top:2px solid rgba(0,0,0,.1)}
   .brow-a{background:#fff}
   .bstk-a{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:#888;flex-shrink:0;min-width:36px}
@@ -164,14 +164,14 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   .bnm-b{font-size:clamp(24px,3vw,52px);font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#fff;line-height:1}
 
   /* ── À suivre ── */
-  .st{font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;margin-bottom:8px;flex-shrink:0}
+  .st{font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;margin-bottom:8px;flex-shrink:0;text-align:center}
   .sl{display:flex;flex-direction:column;gap:5px;overflow:hidden;flex:1}
-  .si-a{border:2px solid #fff;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#fff;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .si-b{border:2px solid #cc0000;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#cc0000;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .si-a{border:2px solid #fff;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#fff;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .si-b{border:2px solid #cc0000;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#cc0000;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 
   .fin-a{font-size:clamp(20px,3vw,40px);font-weight:900;text-transform:uppercase;text-align:center;color:#1a1a1a;padding:40px 0;flex:1}
   .fin-b{font-size:clamp(20px,3vw,40px);font-weight:900;text-transform:uppercase;text-align:center;color:#4d0000;padding:40px 0;flex:1}
-  .ctr{font-size:10px;color:#1a1a1a;letter-spacing:2px;margin-top:10px;flex-shrink:0;text-align:center}
+  .ctr{font-size:11px;color:#555;letter-spacing:2px;margin-top:10px;flex-shrink:0;text-align:center}
 </style>
 </head><body>
 <div class="hdr">
@@ -264,12 +264,12 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
       {/* ══════ STATS ══════ */}
       <div className="grid2" style={{ marginBottom: 12 }}>
         <div className="card" style={{ textAlign: 'center', padding: '24px 16px' }}>
-          <div className="label" style={{ marginBottom: 8 }}>Cypher A</div>
+          <div className="label" style={{ marginBottom: 8 }}>Cercle A</div>
           <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1 }}>{cA}</div>
           <div className="muted" style={{ marginTop: 6 }}>équipes</div>
         </div>
         <div className="card" style={{ border: '1px solid #3d0000', textAlign: 'center', padding: '24px 16px' }}>
-          <div className="label" style={{ marginBottom: 8 }}>Cypher B</div>
+          <div className="label" style={{ marginBottom: 8 }}>Cercle B</div>
           <div style={{ fontSize: 56, fontWeight: 900, color: 'var(--red)', lineHeight: 1 }}>{cB}</div>
           <div className="muted" style={{ marginTop: 6 }}>équipes</div>
         </div>
@@ -284,7 +284,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
         <div className="alert-warn" style={{ marginBottom: 12 }}>⚠️ <strong>Déséquilibre !</strong> Différence de {diff} équipes — orientez vers le Cercle {weaker}.</div>
       )}
       {crews.length > 0 && diff <= 3 && (
-        <div className="alert-ok" style={{ marginBottom: 12 }}>✓ Cyphers équilibrés — différence de {diff} équipe(s).</div>
+        <div className="alert-ok" style={{ marginBottom: 12 }}>✓ Cercles équilibrés — différence de {diff} équipe(s).</div>
       )}
 
       <div className="grid3" style={{ marginBottom: 24 }}>
@@ -346,7 +346,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
       {/* Panel assignation juges */}
       {showAssign && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <div className="title-sm" style={{ marginBottom: 16 }}>Assigner les juges à un cypher</div>
+          <div className="title-sm" style={{ marginBottom: 16 }}>Assigner les juges à un cercle</div>
           {judges.length === 0 && <div className="caption">Aucun juge configuré.</div>}
           {judges.map(j => (
             <div key={j.id} className="flex-between" style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
@@ -391,7 +391,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
                   <div className="caption" style={{ textAlign: 'center', padding: '20px 0' }}>Aucune équipe</div>
                 ) : idx >= pairs.length ? (
                   <div style={{ textAlign: 'center', padding: '20px 0', color: isB ? 'var(--red)' : 'var(--text2)', fontWeight: 700, fontSize: 14 }}>
-                    ✓ Fin du Cypher {side}
+                    ✓ Fin du Cercle {side}
                   </div>
                 ) : (
                   <>
