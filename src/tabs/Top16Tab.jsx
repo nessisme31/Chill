@@ -243,7 +243,7 @@ export default function Top16Tab({ battle, judges, crews }) {
                   border: `1px solid ${scoringCypher === 'A' ? 'var(--border)' : 'var(--border2)'}`,
                 }}
                 onClick={() => setScoringCypher('A')}
-              >Cypher A</button>
+              >Cercle A</button>
               <button
                 className="btn btn-sm"
                 style={{
@@ -252,7 +252,7 @@ export default function Top16Tab({ battle, judges, crews }) {
                   border: `1px solid ${scoringCypher === 'B' ? 'var(--red-dim)' : 'var(--border2)'}`,
                 }}
                 onClick={() => setScoringCypher('B')}
-              >Cypher B</button>
+              >Cercle B</button>
             </div>
             <div className="flex" style={{ gap: 12, alignItems: 'center' }}>
               {judgesForCypher.length > 0
@@ -260,7 +260,7 @@ export default function Top16Tab({ battle, judges, crews }) {
                     Juges : <strong>{judgesForCypher.map(j => j.name).join(', ')}</strong>
                   </span>
                 : <span className="muted" style={{ fontSize: 12 }}>
-                    ⚠️ Aucun juge assigné au Cypher {scoringCypher}
+                    ⚠️ Aucun juge assigné au Cercle {scoringCypher}
                   </span>
               }
             </div>
@@ -270,7 +270,7 @@ export default function Top16Tab({ battle, judges, crews }) {
             {crewsForCypher.length === 0
               ? <div className="caption">Aucune équipe dans le Cypher {scoringCypher}.</div>
               : judgesForCypher.length === 0
-                ? <div className="caption">Assignez d'abord des juges au Cypher {scoringCypher} dans l'onglet "Qualification & Stats".</div>
+                ? <div className="caption">Assignez d'abord des juges au Cercle {scoringCypher} dans l'onglet "Qualification & Stats".</div>
                 : <div style={{ overflowX: 'auto' }}>
                     <table className="tbl" style={{ minWidth: 400 }}>
                       <thead>
