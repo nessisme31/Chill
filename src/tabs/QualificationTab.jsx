@@ -131,11 +131,11 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   body{background:#000;color:#fff;font-family:'Arial Black',Arial,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
   /* ── Header ── */
-  .hdr{display:flex;align-items:center;padding:20px 40px;flex-shrink:0;border-bottom:2px solid #111}
+  .hdr{position:relative;display:flex;align-items:center;padding:20px 40px;flex-shrink:0;border-bottom:2px solid #111}
   .hdr-a{flex:1;display:flex;justify-content:center}
   .hdr-a .lbl{display:inline-flex;align-items:center;border:4px solid #fff;padding:12px 36px}
   .hdr-a .lbl span{font-size:clamp(28px,4.2vw,62px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:3px}
-  .hdr-logo{flex:0 0 auto;padding:0 32px;text-align:center}
+  .hdr-logo{position:absolute;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}
   .hdr-logo img{height:clamp(160px,24vh,300px);object-fit:contain}
   .hdr-b{flex:1;display:flex;justify-content:center}
   .hdr-b .lbl{display:inline-flex;align-items:center;background:#cc0000;padding:12px 36px}
@@ -144,13 +144,13 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   /* ── Arena ── */
   .arena{display:flex;flex:1;overflow:hidden}
   .side{flex:1;padding:24px 36px;display:flex;flex-direction:column;overflow:hidden}
-  .side-a{border-right:4px solid #fff}
+  .side-a{border-right:3px solid #fff}
 
   /* ── Battle box ── */
   .bx-a{border:3px solid #fff;margin-bottom:20px;flex-shrink:0}
   .bx-b{background:#cc0000;margin-bottom:20px;flex-shrink:0}
-  .brow{display:flex;align-items:center;justify-content:center;gap:14px;padding:14px 22px}
-  .brow+.brow{border-top:2px solid rgba(0,0,0,.1)}
+  .brow{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 22px}
+  .brow+.brow{border-top:3px solid rgba(0,0,0,.12);margin-top:4px}
   .brow-a{background:#fff}
   .bstk-a{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:#888;flex-shrink:0;min-width:36px}
   .bstk-b{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:rgba(255,255,255,.5);flex-shrink:0;min-width:36px}
