@@ -83,39 +83,89 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     URL.revokeObjectURL(url)
   }
 
-  const printSheets = () => {
-    const sheet = (cypher) => {
-      const filtered = crews.filter(c => c.cypher === cypher)
-      const assignedJudges = judges.filter(j => assignments[j.id] === cypher)
-      const judgeNames = assignedJudges.length > 0 ? assignedJudges.map(j => j.name).join(', ') : '—'
-      const rows = filtered.map(c => `<tr>
-        <td style="font-weight:800;color:${cypher === 'A' ? '#555' : '#c0392b'};width:60px">${c.sticker}</td>
-        <td style="font-weight:600;text-transform:uppercase">${crewDisplay(c)}</td>
-        <td style="color:#666;text-transform:lowercase">${c.member1} &amp; ${c.member2}</td>
-        <td style="text-align:center;border:2px solid #ddd;font-size:20px;font-weight:800;min-width:60px">&nbsp;</td>
-        <td style="border:1px solid #ddd;min-width:200px">&nbsp;</td>
-      </tr>`).join('')
-      return `<div>
-        <h2>${battle.name} — Cercle ${cypher}</h2>
-        <p>Juges : <strong>${judgeNames}</strong> &nbsp;|&nbsp; ${new Date().toLocaleDateString('fr-FR')} &nbsp;|&nbsp; ${filtered.length} équipe(s)</p>
-        <table style="width:100%;border-collapse:collapse">
+  const printSheets = (cypher) => {
+    const filtered = sortByCypher(crews, cypher)
+    const battles = makePairs(filtered)
+    const assignedJudges = judges.filter(j => assignments[j.id] === cypher)
+    const judgeNames = assignedJudges.length > 0 ? assignedJudges.map(j => j.name).join(', ') : '—'
+    const accent = cypher === 'A' ? '#555' : '#c0392b'
+    const safe = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+
+    const teamBlock = (crew, teamCount) => `
+      <td class="team-cell" style="width:${100 / teamCount}%">
+        <div class="team-title">
+          <span class="sticker" style="color:${accent}">${safe(crew.sticker)}</span>
+          <span class="crew-name">${safe(crewDisplay(crew))}</span>
+        </div>
+        <table class="score-table">
           <thead><tr>
-            <th style="background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;text-align:left">Sticker</th>
-            <th style="background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;text-align:left">Crew</th>
-            <th style="background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;text-align:left">Membres</th>
-            <th style="background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;text-align:center">Score</th>
-            <th style="background:#f5f5f5;padding:10px 12px;border:1px solid #ddd;text-align:left">Commentaire</th>
+            <th>Passage 1</th>
+            <th>Passage 2</th>
           </tr></thead>
-          <tbody>${rows}</tbody>
+          <tbody><tr>
+            <td class="score-box">&nbsp;</td>
+            <td class="score-box">&nbsp;</td>
+          </tr></tbody>
         </table>
-      </div>`
-    }
+        <div class="comment-label">Commentaire</div>
+        <div class="comment-box">&nbsp;</div>
+      </td>`
+
+    const battleCards = battles.map((battleTeams, index) => {
+      const names = battleTeams.map(t => safe(t.sticker)).join(' <span class="versus">VS</span> ')
+      return `<section class="battle-card">
+        <div class="battle-heading"><strong>Battle ${index + 1}</strong><span>${names}</span></div>
+        <table class="teams-table"><tbody><tr>${battleTeams.map(team => teamBlock(team, battleTeams.length)).join('')}</tr></tbody></table>
+      </section>`
+    }).join('')
+
     const w = window.open('', '_blank')
-    if (!w) { alert('Autorisez les popups'); return }
-    w.document.write(`<!DOCTYPE html><html><head><title>Feuilles juges</title>
-      <style>body{font-family:Arial,sans-serif;padding:20px}h2{margin-bottom:4px}p{color:#666;font-size:13px;margin-bottom:16px}td{padding:10px 8px;border-bottom:1px solid #eee}@media print{.break{page-break-before:always}}</style>
-    </head><body>${sheet('A')}<div class="break"></div>${sheet('B')}</body></html>`)
-    w.document.close(); w.print()
+    if (!w) { alert('Autorisez les popups pour ouvrir la feuille des juges'); return }
+    w.document.write(`<!DOCTYPE html><html lang="fr"><head>
+      <meta charset="UTF-8">
+      <title>${safe(battle.name)} — Feuille juges Cercle ${cypher}</title>
+      <style>
+        *{box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0;padding:18mm 12mm;background:#fff}
+        h1{font-size:22px;margin:0 0 5px;text-transform:uppercase;letter-spacing:.3px}
+        .meta{font-size:12px;color:#555;margin:0 0 7px}
+        .instruction{font-size:11px;color:#666;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid ${accent}}
+        .battle-card{page-break-inside:avoid;border:1px solid #bdbdbd;margin:0 0 14px}
+        .battle-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f1f1f1;border-bottom:1px solid #bdbdbd;padding:8px 10px;font-size:12px;text-transform:uppercase}
+        .battle-heading strong{font-size:13px;white-space:nowrap}
+        .versus{font-weight:800;color:#888;margin:0 4px}
+        .teams-table{width:100%;border-collapse:collapse;table-layout:fixed}
+        .team-cell{width:50%;vertical-align:top;padding:10px;border-right:1px solid #bdbdbd}
+        .team-cell:last-child{border-right:0}
+        .team-title{display:flex;align-items:baseline;gap:9px;min-height:28px;margin-bottom:8px}
+        .sticker{font-size:14px;font-weight:900;white-space:nowrap}
+        .crew-name{font-size:15px;font-weight:900;text-transform:uppercase;line-height:1.15}
+        .score-table{width:100%;border-collapse:collapse;table-layout:fixed}
+        .score-table th{background:#f7f7f7;border:1px solid #cfcfcf;padding:6px 4px;font-size:10px;text-transform:uppercase;text-align:center}
+        .score-box{height:36px;border:1px solid #999;text-align:center;font-size:18px;font-weight:800}
+        .comment-label{font-size:10px;font-weight:800;text-transform:uppercase;color:#555;margin:9px 0 4px}
+        .comment-box{height:48px;border:1px solid #999}
+        .empty{padding:30px;text-align:center;color:#666;border:1px dashed #aaa}
+        @media print{
+          body{padding:10mm 8mm}
+          .battle-card{break-inside:avoid}
+          @page{size:A4 landscape;margin:8mm}
+        }
+        @media screen{body{max-width:1400px;margin:0 auto;background:#fafafa}.battle-card{background:#fff}}
+      </style>
+    </head><body>
+      <h1>${safe(battle.name)} — Cercle ${cypher}</h1>
+      <p class="meta">Juges : <strong>${safe(judgeNames)}</strong> &nbsp;|&nbsp; ${new Date().toLocaleDateString('fr-FR')} &nbsp;|&nbsp; ${filtered.length} équipe(s)</p>
+      <p class="instruction">Noter chaque équipe séparément sur 5 pour le Passage 1 et le Passage 2, puis ajouter vos observations dans Commentaire.</p>
+      ${battleCards || '<div class="empty">Aucune équipe inscrite dans le Cercle ' + cypher + '.</div>'}
+    </body></html>`)
+    w.document.close()
+    setTimeout(() => w.print(), 250)
   }
 
   const openDisplayMode = () => {
@@ -334,7 +384,8 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
         <div className="flex" style={{ gap: 8 }}>
           <button className="btn btn-ghost btn-sm" onClick={openDisplayMode}>🖥 Affichage</button>
           <button className="btn btn-ghost btn-sm" onClick={exportDanseurs}>⬇ CSV</button>
-          <button className="btn btn-ghost btn-sm" onClick={printSheets}>🖨 Imprimer</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => printSheets('A')}>🖨 Imprimer Cercle A</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => printSheets('B')}>🖨 Imprimer Cercle B</button>
         </div>
       </div>
 
