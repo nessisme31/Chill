@@ -108,8 +108,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
 
     const battleCards = battles.map((battleTeams, index) => {
       const names = battleTeams.map(t => safe(t.sticker)).join(' <span class="versus">VS</span> ')
-      const pageBreak = index > 0 && index % 5 === 0 ? ' page-break' : ''
-      return `<section class="battle-card${pageBreak}">
+      return `<section class="battle-card">
         <div class="battle-heading"><strong>Battle ${index + 1}</strong><span>${names}</span></div>
         <table class="teams-table">
           <thead><tr>
@@ -133,33 +132,33 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
         body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0;padding:0;background:#fff}
         h1{font-size:18px;margin:0 0 3px;text-transform:uppercase;letter-spacing:.2px}
         .meta{font-size:10px;color:#555;margin:0 0 4px}
-        .instruction{font-size:9px;color:#555;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid ${accent}}
-        .battle-card{page-break-inside:avoid;break-inside:avoid;border:1px solid #aaa;margin:0 0 6px}
-        .battle-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#f1f1f1;border-bottom:1px solid #aaa;padding:4px 7px;font-size:9px;text-transform:uppercase}
-        .battle-heading strong{font-size:10px;white-space:nowrap}
-        .versus{font-weight:800;color:#888;margin:0 3px}
+        .instruction{font-size:9px;color:#555;margin:0 0 7px;padding-bottom:5px;border-bottom:2px solid ${accent}}
+        .battle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 7px;align-items:start}
+        .battle-card{page-break-inside:avoid;break-inside:avoid;border:1px solid #aaa;margin:0;min-width:0}
+        .battle-heading{display:flex;justify-content:space-between;align-items:center;gap:5px;background:#f1f1f1;border-bottom:1px solid #aaa;padding:3px 5px;font-size:8px;text-transform:uppercase}
+        .battle-heading strong{font-size:9px;white-space:nowrap}
+        .versus{font-weight:800;color:#888;margin:0 2px}
         .teams-table{width:100%;border-collapse:collapse;table-layout:fixed}
-        .teams-table th{background:#f7f7f7;border:1px solid #c7c7c7;padding:3px 4px;font-size:8px;text-transform:uppercase;text-align:center;line-height:1.1}
-        .teams-table th.team-head{text-align:left;width:37%}
-        .teams-table th:nth-child(2),.teams-table th:nth-child(3){width:10%}
-        .teams-table th:nth-child(4){width:43%}
-        .teams-table td{border:1px solid #c7c7c7;padding:3px 5px;line-height:1.1}
-        .team-col{font-size:9px;vertical-align:middle}
-        .sticker{font-size:9px;font-weight:900;white-space:nowrap;margin-right:5px}
-        .crew-name{font-size:9px;text-transform:uppercase}
-        .score-box{height:24px;text-align:center;font-size:12px;font-weight:800}
-        .comment-box{height:24px}
+        .teams-table th{background:#f7f7f7;border:1px solid #c7c7c7;padding:2px 3px;font-size:7px;text-transform:uppercase;text-align:center;line-height:1.05}
+        .teams-table th.team-head{text-align:left;width:43%}
+        .teams-table th:nth-child(2),.teams-table th:nth-child(3){width:12%}
+        .teams-table th:nth-child(4){width:33%}
+        .teams-table td{border:1px solid #c7c7c7;padding:2px 3px;line-height:1.05}
+        .team-col{font-size:7.5px;vertical-align:middle;overflow-wrap:anywhere}
+        .sticker{font-size:7.5px;font-weight:900;white-space:nowrap;margin-right:3px}
+        .crew-name{font-size:7.5px;text-transform:uppercase}
+        .score-box{height:18px;text-align:center;font-size:10px;font-weight:800}
+        .comment-box{height:18px}
         .empty{padding:20px;text-align:center;color:#666;border:1px dashed #aaa;font-size:10px}
-        .page-break{page-break-before:always;break-before:page}
         @page{size:A4 portrait;margin:8mm}
-        @media print{body{padding:0}.battle-card{page-break-inside:avoid;break-inside:avoid}}
-        @media screen{body{max-width:800px;margin:0 auto;padding:18px;background:#fafafa}.battle-card{background:#fff}}
+        @media print{body{padding:0}.battle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 6px}.battle-card{page-break-inside:avoid;break-inside:avoid}}
+        @media screen{body{max-width:800px;margin:0 auto;padding:18px;background:#fafafa}.battle-grid{gap:8px}.battle-card{background:#fff}}
       </style>
     </head><body>
       <h1>${safe(battle.name)} — Cercle ${cypher}</h1>
       <p class="meta">Juges : <strong>${safe(judgeNames)}</strong> &nbsp;|&nbsp; ${new Date().toLocaleDateString('fr-FR')} &nbsp;|&nbsp; ${filtered.length} équipe(s)</p>
       <p class="instruction">Noter chaque danseur de chaque équipe séparément sur 5, puis ajouter vos observations dans Commentaire.</p>
-      ${battleCards || '<div class="empty">Aucune équipe inscrite dans le Cercle ' + cypher + '.</div>'}
+      ${battleCards ? `<div class="battle-grid">${battleCards}</div>` : '<div class="empty">Aucune équipe inscrite dans le Cercle ' + cypher + '.</div>'}
     </body></html>`)
     w.document.close()
     setTimeout(() => w.print(), 250)
