@@ -96,27 +96,26 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
       .replace(/'/g, '&#039;')
 
     const teamPanel = (crew) => `<div class="team-panel">
-      <div class="team-grid">
-        <div class="grid-label">&nbsp;</div>
-        <div class="grid-label">Crew</div>
-        <div class="grid-label">Danseur 1</div>
-        <div class="grid-label">Danseur 2</div>
-        <div class="grid-label">Commentaire</div>
-        <div class="grid-value sticker-value" style="color:${accent}">${safe(crew.sticker)}</div>
-        <div class="grid-value crew-value">${safe(crew.name)}</div>
-        <div class="grid-value score-value">&nbsp;</div>
-        <div class="grid-value score-value">&nbsp;</div>
-        <div class="grid-value comment-value">&nbsp;</div>
+      <div class="team-id" style="color:${accent}">${safe(crew.sticker)}</div>
+      <div class="team-body">
+        <div class="crew-value">${safe(crew.name)}</div>
+        <div class="score-stack">
+          <div class="score-label">Danseur 1</div>
+          <div class="score-box">&nbsp;</div>
+          <div class="score-label">Danseur 2</div>
+          <div class="score-box">&nbsp;</div>
+        </div>
       </div>
     </div>`
 
     const battleCards = battles.map((battleTeams, index) => {
       const names = battleTeams.map(t => safe(t.sticker)).join(' <span class="versus">VS</span> ')
+      const versusLayout = battleTeams.map((team, teamIndex) =>
+        `${teamIndex > 0 ? '<div class="vs-divider">VS</div>' : ''}${teamPanel(team)}`
+      ).join('')
       return `<section class="battle-card">
         <div class="battle-heading"><strong>Battle ${index + 1}</strong><span>${names}</span></div>
-        <div class="teams-row" style="grid-template-columns:repeat(${battleTeams.length},minmax(0,1fr))">
-          ${battleTeams.map(teamPanel).join('')}
-        </div>
+        <div class="battle-versus">${versusLayout}</div>
       </section>`
     }).join('')
 
@@ -136,18 +135,15 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
         .battle-heading{display:flex;justify-content:space-between;align-items:center;gap:5px;background:#f1f1f1;border-bottom:1px solid #aaa;padding:3px 5px;font-size:8px;text-transform:uppercase}
         .battle-heading strong{font-size:9px;white-space:nowrap}
         .versus{font-weight:800;color:#888;margin:0 2px}
-        .teams-row{display:grid;width:100%;align-items:stretch}
-        .team-panel{min-width:0;border-right:1px solid #c7c7c7}
-        .team-panel:last-child{border-right:0}
-        .team-grid{display:grid;grid-template-columns:7% 35% 11% 11% 36%;width:100%;height:100%}
-        .grid-label{background:#f7f7f7;border-right:1px solid #c7c7c7;border-bottom:1px solid #c7c7c7;padding:2px 2px;font-size:7px;font-weight:800;text-transform:uppercase;text-align:center;line-height:1.05;overflow-wrap:anywhere}
-        .grid-label:nth-child(5){border-right:0}
-        .grid-value{border-right:1px solid #c7c7c7;padding:3px 3px;min-height:20px;font-size:8px;line-height:1.05;overflow-wrap:anywhere}
-        .grid-value:nth-child(10){border-right:0}
-        .sticker-value{font-weight:900;white-space:nowrap}
-        .crew-value{font-weight:900;text-transform:uppercase}
-        .score-value{text-align:center;font-size:10px;font-weight:800}
-        .comment-value{min-height:25px}
+        .battle-versus{display:flex;width:100%;align-items:stretch}
+        .team-panel{flex:1;min-width:0}
+        .team-id{height:24px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #777;font-size:12px;font-weight:900}
+        .team-body{display:grid;grid-template-columns:46% 54%;min-height:88px}
+        .crew-value{display:flex;align-items:flex-start;padding:6px 5px;border-right:1px solid #777;font-size:10px;font-weight:900;text-transform:uppercase;line-height:1.1;overflow-wrap:anywhere}
+        .score-stack{display:grid;grid-template-rows:16px 27px 16px 27px}
+        .score-label{display:flex;align-items:center;justify-content:center;border-bottom:1px solid #777;background:#fafafa;font-size:8px;font-weight:800;text-transform:uppercase;line-height:1}
+        .score-box{border-bottom:1px solid #777;min-height:27px}
+        .vs-divider{flex:0 0 42px;display:flex;align-items:center;justify-content:center;border-left:1px solid #777;border-right:1px solid #777;font-size:17px;font-weight:900;color:#333}
         .empty{padding:20px;text-align:center;color:#666;border:1px dashed #aaa;font-size:10px}
         @page{size:A4 portrait;margin:8mm}
         @media print{body{padding:0}.battle-grid{display:flex;flex-direction:column;gap:4px}.battle-card{page-break-inside:avoid;break-inside:avoid}}
@@ -156,7 +152,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     </head><body>
       <h1>${safe(battle.name)} — Cercle ${cypher}</h1>
       <p class="meta">Juges : <strong>${safe(judgeNames)}</strong> &nbsp;|&nbsp; ${new Date().toLocaleDateString('fr-FR')} &nbsp;|&nbsp; ${filtered.length} équipe(s)</p>
-      <p class="instruction">Noter chaque danseur de chaque équipe séparément sur 5, puis ajouter vos observations dans Commentaire.</p>
+      <p class="instruction">Noter chaque danseur de chaque équipe séparément sur 5.</p>
       ${battleCards ? `<div class="battle-grid">${battleCards}</div>` : '<div class="empty">Aucune équipe inscrite dans le Cercle ' + cypher + '.</div>'}
     </body></html>`)
     w.document.close()
