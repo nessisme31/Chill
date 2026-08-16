@@ -41,7 +41,7 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
           <div className="card" style={{ maxWidth: 360, width: '100%', textAlign: 'center', padding: '36px 28px' }}>
             <div style={{ fontSize: 28, marginBottom: 12 }}>🗑️</div>
-            <div className="title-sm" style={{ marginBottom: 8 }}>Supprimer cette archive ?</div>
+            <div className="title-sm" style={{ marginBottom: 8 }}>Supprimer ce battle ?</div>
             <div className="muted" style={{ marginBottom: 6 }}>
               <strong style={{ color: 'var(--text)' }}>{confirmDelete.name}</strong>
             </div>
@@ -108,9 +108,19 @@ export default function HomePage({ onNewBattle, onOpenBattle }) {
                           <span className="muted">{st.label}</span>
                         </div>
                       </div>
-                      <span style={{ color: 'var(--text3)', fontSize: 12 }}>
-                        {b.status === 'paused' ? 'Reprendre →' : 'Ouvrir →'}
-                      </span>
+                      <div className="flex" style={{ alignItems: 'center', gap: 10, marginLeft: 16 }}>
+                        <span style={{ color: 'var(--text3)', fontSize: 12 }}>
+                          {b.status === 'paused' ? 'Reprendre →' : 'Ouvrir →'}
+                        </span>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          title="Supprimer ce battle"
+                          style={{ color: 'var(--red)', borderColor: 'var(--red-dim)', padding: '4px 10px' }}
+                          onClick={e => { e.stopPropagation(); setConfirmDelete(b) }}
+                        >
+                          🗑
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )
