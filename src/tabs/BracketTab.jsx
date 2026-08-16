@@ -44,8 +44,15 @@ export default function BracketTab({ battle, crews }) {
   const [selecting,     setSelecting]     = useState(null)
   const [loading,       setLoading]       = useState(true)
   const [locking,       setLocking]       = useState(false)
+  const [viewportWidth, setViewportWidth] = useState(() => typeof window === 'undefined' ? 1440 : window.innerWidth)
 
   useEffect(() => { loadData() }, [battle.id])
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const loadData = async () => {
     setLoading(true)
@@ -157,6 +164,15 @@ export default function BracketTab({ battle, crews }) {
 
   const allR1Filled = Object.values(bracket[1]).every(m => m.team1 && m.team2)
   const champion = bracket[4][1].winner ? bracket[4][1][bracket[4][1].winner] : null
+  const bracketBaseWidth = COL * 7
+  const bracketBaseHeight = Math.max(
+    MATCH_H * 2 + GB * 2,
+    R2_PT + MATCH_H * 2 + R2_GAP,
+    R3_PT + MATCH_H,
+  ) + 18
+  const bracketScale = Math.min(2.15, Math.max(0.78, (viewportWidth - 96) / bracketBaseWidth))
+  const bracketViewportWidth = bracketBaseWidth * bracketScale
+  const bracketViewportHeight = bracketBaseHeight * bracketScale
 
   // ─── Rendu d'une boîte équipe individuelle ───────────────────────────────────
   const renderTeamBox = (round, match, slotKey, side) => {
@@ -417,7 +433,15 @@ ${champion?`<div style="text-align:center;margin-top:10px;padding:6px;background
       </div>
 
       {/* ══════ BRACKET ══════ */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', userSelect: 'none' }}>
+      <div style={{
+        position: 'relative', left: '50%', transform: 'translateX(-50%)',
+        width: bracketViewportWidth, height: bracketViewportHeight,
+        marginBottom: 18, overflow: 'visible',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', userSelect: 'none',
+          width: bracketBaseWidth, transform: `scale(${bracketScale})`, transformOrigin: 'top left',
+        }}>
 
         {/* ── GAUCHE R1 — 1,2,3,4 ── */}
         <div style={{ width: COL, flexShrink: 0, paddingLeft: CONN, paddingRight: CONN }}>
@@ -458,6 +482,7 @@ ${champion?`<div style="text-align:center;margin-top:10px;padding:6px;background
           {renderPair(1, 7, 8, 'right')}
         </div>
 
+        </div>
       </div>
 
       {/* ── Modale sélection équipe ── */}
