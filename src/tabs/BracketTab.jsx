@@ -376,7 +376,10 @@ export default function BracketTab({ battle, crews }) {
         .top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px}
         .title{font-size:clamp(24px,2.1vw,42px);font-weight:900;text-transform:uppercase;letter-spacing:.5px}
         .sub{color:#888;font-size:clamp(12px,1vw,20px);margin-top:5px}
-        .fullscreen{background:#161616;border:1px solid #444;color:#ddd;border-radius:6px;padding:9px 14px;font-size:14px;cursor:pointer}
+        .controls{display:flex;align-items:center;gap:8px}
+        .background-btn{background:#161616;border:1px solid #444;color:#ddd;border-radius:6px;padding:9px 14px;font-size:14px;cursor:pointer}
+        .background-btn:hover{background:#222}
+        #bgFile{display:none}
         .bracket{display:grid;grid-template-columns:1.35fr 1fr .85fr .85fr .85fr 1fr 1.35fr;gap:clamp(12px,1.4vw,28px);min-height:calc(100vh - 120px);align-items:stretch}
         .round{display:flex;flex-direction:column;justify-content:space-around;gap:clamp(10px,1vw,20px);min-width:0}
         .round>div[id]{display:flex;flex:1;flex-direction:column;justify-content:space-around;gap:clamp(10px,1vw,20px)}
@@ -395,7 +398,10 @@ export default function BracketTab({ battle, crews }) {
       </head><body>
         <div class="top">
           <div><div class="title">${battle.name} — Bracket</div><div class="sub">TOP 16 · affichage public</div></div>
-          <button class="fullscreen" onclick="document.documentElement.requestFullscreen?.()">⛶ Plein écran</button>
+          <div class="controls">
+            <label class="background-btn" for="bgFile">🖼 Importer un fond</label>
+            <input id="bgFile" type="file" accept="image/*">
+          </div>
         </div>
         <div class="bracket">
           <div class="round left"><div class="round-label">1/8 finale</div><div id="leftR1"></div></div>
@@ -409,6 +415,24 @@ export default function BracketTab({ battle, crews }) {
         <script>
           const initial = ${initialState};
           const channel = new BroadcastChannel(${JSON.stringify(channelName)});
+          const backgroundKey = ${JSON.stringify(`citc_bracket_background_${battle.id}`)};
+          const applyBackground = (dataUrl) => {
+            document.body.style.backgroundImage = dataUrl
+              ? 'linear-gradient(rgba(0,0,0,.58),rgba(0,0,0,.58)),url("' + dataUrl + '")'
+              : '';
+            document.body.style.backgroundSize = dataUrl ? 'cover' : '';
+            document.body.style.backgroundPosition = dataUrl ? 'center' : '';
+            document.body.style.backgroundAttachment = dataUrl ? 'fixed' : '';
+            try { dataUrl ? localStorage.setItem(backgroundKey, dataUrl) : localStorage.removeItem(backgroundKey); } catch (e) {}
+          };
+          try { const savedBackground = localStorage.getItem(backgroundKey); if (savedBackground) applyBackground(savedBackground); } catch (e) {}
+          document.getElementById('bgFile').addEventListener('change', (event) => {
+            const file = event.target.files?.[0];
+            if (!file || !file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = () => applyBackground(reader.result);
+            reader.readAsDataURL(file);
+          });
           const esc = (value) => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
           const matchHtml = (m) => {
             const match = m || { team1:null, team2:null, winner:null };
