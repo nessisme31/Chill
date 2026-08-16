@@ -99,8 +99,22 @@ export default function BracketTab({ battle, crews }) {
     setLoading(false)
   }
 
+  const isTeamPlacedElsewhere = (teamId, except = selecting) => {
+    return Object.entries(bracket).some(([roundKey, round]) =>
+      Object.entries(round).some(([matchKey, m]) =>
+        ['team1', 'team2'].some(slotKey => {
+          const isExceptedSlot = except
+            && Number(roundKey) === except.round
+            && Number(matchKey) === except.match
+            && slotKey === except.slot
+          return !isExceptedSlot && String(m[slotKey]?.id) === String(teamId)
+        })
+      )
+    )
+  }
+
   const placeTeam = async (team) => {
-    if (!selecting) return
+    if (!selecting || isTeamPlacedElsewhere(team.id)) return
     const { round, match, slot } = selecting
     setBracket(prev => ({ ...prev, [round]: { ...prev[round], [match]: { ...prev[round][match], [slot]: team } } }))
     setSelecting(null)
@@ -604,15 +618,25 @@ ${champion?`<div style="text-align:center;margin-top:10px;padding:6px;background
               <div className="title-sm">Choisir une équipe</div>
               <button className="btn btn-ghost btn-sm" onClick={() => setSelecting(null)}>✕</button>
             </div>
-            {top16.map(t => (
-              <div key={t.id} style={{ display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer', gap: 8 }}
-                onClick={() => placeTeam(t)}>
-                {t.sticker && <span className={t.cypher === 'A' ? 'sticker-a' : 'sticker-b'}>{t.sticker}</span>}
-                {t.isGuest && <span style={{ color: 'var(--gold)', fontSize: 15 }}>⭐</span>}
-                <span style={{ flex: 1, fontWeight: 600, textTransform: 'uppercase', color: t.isGuest ? 'var(--gold)' : 'var(--text)' }}>{t.name}</span>
-                {t.total != null && <span style={{ fontSize: 11, color: 'var(--text3)' }}>{t.total} pts</span>}
-              </div>
-            ))}
+            {top16.map(t => {
+              const alreadyPlaced = isTeamPlacedElsewhere(t.id)
+              return (
+                <div key={t.id} style={{
+                  display: 'flex', alignItems: 'center', padding: '8px 0',
+                  borderBottom: '1px solid var(--border)', gap: 8,
+                  cursor: alreadyPlaced ? 'not-allowed' : 'pointer',
+                  opacity: alreadyPlaced ? 0.35 : 1,
+                }}
+                  onClick={() => !alreadyPlaced && placeTeam(t)}>
+                  {t.sticker && <span className={t.cypher === 'A' ? 'sticker-a' : 'sticker-b'}>{t.sticker}</span>}
+                  {t.isGuest && <span style={{ color: 'var(--gold)', fontSize: 15 }}>⭐</span>}
+                  <span style={{ flex: 1, fontWeight: 600, textTransform: 'uppercase', color: t.isGuest ? 'var(--gold)' : 'var(--text)' }}>{t.name}</span>
+                  {alreadyPlaced
+                    ? <span style={{ fontSize: 10, color: 'var(--green)' }}>✓ Déjà placé</span>
+                    : t.total != null && <span style={{ fontSize: 11, color: 'var(--text3)' }}>{t.total} pts</span>}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
