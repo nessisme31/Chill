@@ -37,6 +37,7 @@ const emptyBracket = () => {
 }
 
 export default function BracketTab({ battle, crews }) {
+  const backgroundKey = `citc_bracket_background_${battle.id}`
   const [validated,     setValidated]     = useState(false)
   const [bracketLocked, setBracketLocked] = useState(false)
   const [top16,         setTop16]         = useState([])
@@ -45,7 +46,11 @@ export default function BracketTab({ battle, crews }) {
   const [loading,       setLoading]       = useState(true)
   const [locking,       setLocking]       = useState(false)
   const [viewportWidth, setViewportWidth] = useState(() => typeof window === 'undefined' ? 1440 : window.innerWidth)
+  const [background, setBackground] = useState(() => {
+    try { return typeof window === 'undefined' ? '' : (localStorage.getItem(backgroundKey) || '') } catch (e) { return '' }
+  })
   const displayChannelRef = useRef(null)
+  const backgroundInputRef = useRef(null)
 
   useEffect(() => { loadData() }, [battle.id])
 
@@ -127,6 +132,18 @@ export default function BracketTab({ battle, crews }) {
     }, { onConflict: 'battle_id,round,match_number,position' })
   }
 
+  const removeTeam = async (round, match, slot) => {
+    if (bracketLocked || round !== 1 || !bracket[round]?.[match]?.[slot]) return
+    const newB = JSON.parse(JSON.stringify(bracket))
+    newB[round][match][slot] = null
+    setBracket(newB)
+    await supabase.from('bracket_slots').delete()
+      .eq('battle_id', battle.id)
+      .eq('round', round)
+      .eq('match_number', match)
+      .eq('position', slot === 'team1' ? 1 : 2)
+  }
+
   const declareWinner = async (round, match, slot) => {
     const winner = bracket[round][match][slot]
     if (!winner) return
@@ -187,6 +204,19 @@ export default function BracketTab({ battle, crews }) {
     setLocking(false)
   }
 
+  const handleBackgroundImport = (event) => {
+    const file = event.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '')
+      setBackground(dataUrl)
+      try { localStorage.setItem(backgroundKey, dataUrl) } catch (e) {}
+      event.target.value = ''
+    }
+    reader.readAsDataURL(file)
+  }
+
   const allR1Filled = Object.values(bracket[1]).every(m => m.team1 && m.team2)
   const champion = bracket[4][1].winner ? bracket[4][1][bracket[4][1].winner] : null
   const bracketBaseWidth = COL * 7
@@ -200,8 +230,8 @@ export default function BracketTab({ battle, crews }) {
   const bracketViewportHeight = bracketBaseHeight * bracketScale
 
   useEffect(() => {
-    displayChannelRef.current?.postMessage({ bracket, champion })
-  }, [bracket, champion])
+    displayChannelRef.current?.postMessage({ bracket, champion, background })
+  }, [bracket, champion, background])
 
   useEffect(() => () => displayChannelRef.current?.close(), [])
 
@@ -218,6 +248,7 @@ export default function BracketTab({ battle, crews }) {
     return (
       <div
         style={{
+          position: 'relative',
           height: TH, display: 'flex', alignItems: 'center', gap: 4,
           paddingLeft: 5, paddingRight: 4,
           background: isWinner ? '#122a12' : isR1 ? '#202020' : '#141414',
@@ -232,6 +263,18 @@ export default function BracketTab({ battle, crews }) {
           : undefined
         }
       >
+        {canPlace && team && (
+          <button
+            onClick={(event) => { event.stopPropagation(); removeTeam(round, match, slotKey) }}
+            title="Retirer cette équipe"
+            style={{
+              position: 'absolute', top: 1, right: 2, zIndex: 2,
+              width: 14, height: 14, padding: 0, lineHeight: '12px',
+              border: '1px solid #555', borderRadius: '50%',
+              background: '#111', color: '#aaa', cursor: 'pointer', fontSize: 10,
+            }}
+          >×</button>
+        )}
         {team?.sticker && (
           <span style={{ fontSize: 7, fontWeight: 800, flexShrink: 0, color: team.cypher === 'A' ? '#666' : '#cc0000' }}>
             {team.sticker}
@@ -358,7 +401,7 @@ export default function BracketTab({ battle, crews }) {
   // ─── Affichage écran public ───────────────────────────────────────────────────
   const openDisplayMode = () => {
     const channelName = `citc_bracket_display_${battle.id}`
-    const initialState = JSON.stringify({ bracket, champion }).replace(/</g, '\\u003c')
+    const initialState = JSON.stringify({ bracket, champion, background }).replace(/</g, '\\u003c')
     const w = window.open('', '_blank')
     if (!w) { alert('Autorisez les popups pour ouvrir l’affichage du bracket'); return }
 
@@ -373,14 +416,7 @@ export default function BracketTab({ battle, crews }) {
         *{box-sizing:border-box}
         html,body{margin:0;min-height:100%;background:#050505;color:#fff;font-family:Arial,Helvetica,sans-serif}
         body{padding:24px 32px;overflow:auto}
-        .top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px}
-        .title{font-size:clamp(24px,2.1vw,42px);font-weight:900;text-transform:uppercase;letter-spacing:.5px}
-        .sub{color:#888;font-size:clamp(12px,1vw,20px);margin-top:5px}
-        .controls{display:flex;align-items:center;gap:8px}
-        .background-btn{background:#161616;border:1px solid #444;color:#ddd;border-radius:6px;padding:9px 14px;font-size:14px;cursor:pointer}
-        .background-btn:hover{background:#222}
-        #bgFile{display:none}
-        .bracket{display:grid;grid-template-columns:1.35fr 1fr .85fr .85fr .85fr 1fr 1.35fr;gap:clamp(12px,1.4vw,28px);min-height:calc(100vh - 120px);align-items:stretch}
+        .bracket{display:grid;grid-template-columns:1.35fr 1fr .85fr .85fr .85fr 1fr 1.35fr;gap:clamp(12px,1.4vw,28px);min-height:100vh;align-items:stretch}
         .round{display:flex;flex-direction:column;justify-content:space-around;gap:clamp(10px,1vw,20px);min-width:0}
         .round>div[id]{display:flex;flex:1;flex-direction:column;justify-content:space-around;gap:clamp(10px,1vw,20px)}
         .round.left{text-align:left}.round.right{text-align:right}
@@ -396,13 +432,6 @@ export default function BracketTab({ battle, crews }) {
         @media (max-width:900px){body{padding:16px}.bracket{grid-template-columns:repeat(7,minmax(150px,1fr));overflow-x:auto;min-height:calc(100vh - 100px)}.team{font-size:16px}}
       </style>
       </head><body>
-        <div class="top">
-          <div><div class="title">${battle.name} — Bracket</div><div class="sub">TOP 16 · affichage public</div></div>
-          <div class="controls">
-            <label class="background-btn" for="bgFile">🖼 Importer un fond</label>
-            <input id="bgFile" type="file" accept="image/*">
-          </div>
-        </div>
         <div class="bracket">
           <div class="round left"><div class="round-label">1/8 finale</div><div id="leftR1"></div></div>
           <div class="round left"><div class="round-label">Quarts</div><div id="leftR2"></div></div>
@@ -425,14 +454,10 @@ export default function BracketTab({ battle, crews }) {
             document.body.style.backgroundAttachment = dataUrl ? 'fixed' : '';
             try { dataUrl ? localStorage.setItem(backgroundKey, dataUrl) : localStorage.removeItem(backgroundKey); } catch (e) {}
           };
-          try { const savedBackground = localStorage.getItem(backgroundKey); if (savedBackground) applyBackground(savedBackground); } catch (e) {}
-          document.getElementById('bgFile').addEventListener('change', (event) => {
-            const file = event.target.files?.[0];
-            if (!file || !file.type.startsWith('image/')) return;
-            const reader = new FileReader();
-            reader.onload = () => applyBackground(reader.result);
-            reader.readAsDataURL(file);
-          });
+          try {
+            const savedBackground = initial.background || localStorage.getItem(backgroundKey);
+            if (savedBackground) applyBackground(savedBackground);
+          } catch (e) {}
           const esc = (value) => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
           const matchHtml = (m) => {
             const match = m || { team1:null, team2:null, winner:null };
@@ -457,13 +482,16 @@ export default function BracketTab({ battle, crews }) {
             renderColumn('rightR1', data, 1, [5,6,7,8]);
           };
           render(initial);
-          channel.onmessage = (event) => render(event.data);
+          channel.onmessage = (event) => {
+            if (event.data.background !== undefined) applyBackground(event.data.background);
+            render(event.data);
+          };
         </script>
       </body></html>`
     w.document.write(html)
     w.document.close()
     w.focus()
-    displayChannelRef.current.postMessage({ bracket, champion })
+    displayChannelRef.current.postMessage({ bracket, champion, background })
   }
 
   // ─── Impression ──────────────────────────────────────────────────────────────
@@ -577,6 +605,15 @@ ${champion?`<div style="text-align:center;margin-top:10px;padding:6px;background
             {locking ? '…' : '↻ Refaire le bracket'}
           </button>
         )}
+        <label className="btn btn-ghost btn-sm" htmlFor="bracketBackgroundInput">🖼 Importer un fond</label>
+        <input
+          ref={backgroundInputRef}
+          id="bracketBackgroundInput"
+          type="file"
+          accept="image/*"
+          onChange={handleBackgroundImport}
+          style={{ display: 'none' }}
+        />
         <button className="btn btn-ghost btn-sm" onClick={openDisplayMode}>🖥 Afficher</button>
         <button className="btn btn-ghost btn-sm" onClick={printBracket}>🖨 Imprimer</button>
       </div>
