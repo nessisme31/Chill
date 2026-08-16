@@ -169,46 +169,45 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
 <title>${battle.name} — Qualifications</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#000;color:#fff;font-family:'Arial Black',Arial,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  html,body{width:100%;height:100%;overflow:hidden}
+  body{background:#000;color:#fff;font-family:'Arial Black',Arial,sans-serif;display:flex;flex-direction:column;aspect-ratio:16/9}
 
-  /* ── Header ── */
-  .hdr{position:relative;display:flex;align-items:center;padding:20px 40px;flex-shrink:0}
+  /* ── Header compact pour écran 16/9 ── */
+  .hdr{position:relative;display:flex;align-items:center;height:13vh;padding:1.4vh 2.5vw;flex-shrink:0}
   .hdr-a{flex:1;display:flex;justify-content:center}
-  .hdr-a .lbl{display:inline-flex;align-items:center;border:4px solid #fff;padding:12px 36px}
-  .hdr-a .lbl span{font-size:clamp(28px,4.2vw,62px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:3px}
+  .hdr-a .lbl{display:inline-flex;align-items:center;border:clamp(2px,.2vw,4px) solid #fff;padding:1vh 2vw}
+  .hdr-a .lbl span{font-size:clamp(20px,3.1vw,56px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:clamp(1px,.2vw,3px)}
   .hdr-logo{position:absolute;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}
-  .hdr-logo img{height:clamp(160px,24vh,300px);object-fit:contain}
+  .hdr-logo img{height:clamp(90px,16vh,230px);max-width:15vw;object-fit:contain}
   .hdr-b{flex:1;display:flex;justify-content:center}
-  .hdr-b .lbl{display:inline-flex;align-items:center;background:#cc0000;padding:12px 36px}
-  .hdr-b .lbl span{font-size:clamp(28px,4.2vw,62px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:3px}
+  .hdr-b .lbl{display:inline-flex;align-items:center;background:#cc0000;padding:1vh 2vw}
+  .hdr-b .lbl span{font-size:clamp(20px,3.1vw,56px);font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:clamp(1px,.2vw,3px)}
 
   /* ── Arena ── */
-  .arena{display:flex;flex:1;overflow:hidden}
-  .side{flex:1;padding:24px 36px;display:flex;flex-direction:column;overflow:hidden}
-  .side-a{border-right:3px solid #fff}
+  .arena{display:flex;flex:1;min-height:0;overflow:hidden}
+  .side{flex:1;min-width:0;min-height:0;padding:1.8vh 2.2vw;display:flex;flex-direction:column;overflow:hidden}
+  .side-a{border-right:clamp(2px,.2vw,3px) solid #fff}
 
-  /* ── Battle box — chaque équipe dans son propre rectangle ── */
-  .bx-a{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;flex-shrink:0}
-  .bx-b{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;flex-shrink:0}
-  .brow{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 22px}
+  /* ── Battle box — dimensionné pour tenir en 16/9 ── */
+  .bx-a,.bx-b{display:flex;flex-direction:column;gap:.7vh;margin-bottom:1.5vh;flex-shrink:0}
+  .brow{display:flex;align-items:center;justify-content:center;gap:1vw;padding:1.5vh 1.3vw;min-height:7vh;overflow:hidden}
   .brow-a{background:#fff}
   .brow-b{background:#cc0000}
-  .bstk-a{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:#888;flex-shrink:0;min-width:36px}
-  .bstk-b{font-size:clamp(13px,1.5vw,22px);font-weight:900;color:rgba(255,255,255,.5);flex-shrink:0;min-width:36px}
-  .bnm-a{font-size:clamp(24px,3vw,52px);font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#000;line-height:1}
-  .bnm-b{font-size:clamp(24px,3vw,52px);font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#fff;line-height:1}
+  .bstk-a{font-size:clamp(11px,1.15vw,18px);font-weight:900;color:#888;flex-shrink:0;min-width:clamp(24px,2.2vw,36px)}
+  .bstk-b{font-size:clamp(11px,1.15vw,18px);font-weight:900;color:rgba(255,255,255,.5);flex-shrink:0;min-width:clamp(24px,2.2vw,36px)}
+  .bnm-a,.bnm-b{font-size:clamp(18px,2.45vw,44px);font-weight:900;text-transform:uppercase;letter-spacing:1px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bnm-a{color:#000}.bnm-b{color:#fff}
 
   /* ── À suivre ── */
-  .st{font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;margin-bottom:8px;flex-shrink:0;text-align:center}
-  .sl{display:flex;flex-direction:column;gap:5px;overflow:hidden;flex:1}
-  .si-a{border:2px solid #fff;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#fff;letter-spacing:.5px;text-align:left;line-height:1.4}
-  .si-b{border:2px solid #cc0000;padding:9px 16px;font-size:clamp(12px,1.4vw,20px);font-weight:700;text-transform:uppercase;color:#cc0000;letter-spacing:.5px;text-align:left;line-height:1.4}
-  .stk-a{color:#555;font-size:.85em}
-  .stk-b{color:#8b0000;font-size:.85em}
+  .st{font-size:clamp(9px,.75vw,12px);font-weight:700;letter-spacing:clamp(1px,.2vw,3px);text-transform:uppercase;color:#fff;margin-bottom:.7vh;flex-shrink:0;text-align:center}
+  .sl{display:flex;flex-direction:column;gap:.45vh;overflow:hidden;flex:1;min-height:0}
+  .si-a,.si-b{border:clamp(1px,.12vw,2px) solid;padding:.8vh 1vw;font-size:clamp(10px,1.1vw,18px);font-weight:700;text-transform:uppercase;letter-spacing:.3px;text-align:left;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .si-a{border-color:#fff;color:#fff}.si-b{border-color:#cc0000;color:#cc0000}
+  .stk-a{color:#555;font-size:.85em}.stk-b{color:#8b0000;font-size:.85em}
 
-  .fin-a{font-size:clamp(20px,3vw,40px);font-weight:900;text-transform:uppercase;text-align:center;color:#1a1a1a;padding:40px 0;flex:1}
-  .fin-b{font-size:clamp(20px,3vw,40px);font-weight:900;text-transform:uppercase;text-align:center;color:#4d0000;padding:40px 0;flex:1}
-  .ctr{font-size:11px;color:#555;letter-spacing:2px;margin-top:10px;flex-shrink:0;text-align:center}
+  .fin-a,.fin-b{font-size:clamp(18px,2.5vw,38px);font-weight:900;text-transform:uppercase;text-align:center;padding:4vh 0;flex:1}
+  .fin-a{color:#1a1a1a}.fin-b{color:#4d0000}
+  .ctr{font-size:clamp(9px,.7vw,11px);color:#555;letter-spacing:1px;margin-top:.8vh;flex-shrink:0;text-align:center}
 </style>
 </head><body>
 <div class="hdr">
