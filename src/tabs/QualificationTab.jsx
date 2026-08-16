@@ -96,29 +96,28 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;')
 
-    const teamRow = (crew) => `<tr>
-      <td class="team-col">
-        <span class="sticker" style="color:${accent}">${safe(crew.sticker)}</span>
-        <strong class="crew-name">${safe(crewDisplay(crew))}</strong>
-      </td>
-      <td class="score-box">&nbsp;</td>
-      <td class="score-box">&nbsp;</td>
-      <td class="comment-box">&nbsp;</td>
-    </tr>`
+    const teamPanel = (crew) => `<div class="team-panel">
+      <div class="team-grid">
+        <div class="grid-label">Sticker</div>
+        <div class="grid-label">Crew</div>
+        <div class="grid-label">Danseur 1</div>
+        <div class="grid-label">Danseur 2</div>
+        <div class="grid-label">Commentaire</div>
+        <div class="grid-value sticker-value" style="color:${accent}">${safe(crew.sticker)}</div>
+        <div class="grid-value crew-value">${safe(crewDisplay(crew))}</div>
+        <div class="grid-value score-value">&nbsp;</div>
+        <div class="grid-value score-value">&nbsp;</div>
+        <div class="grid-value comment-value">&nbsp;</div>
+      </div>
+    </div>`
 
     const battleCards = battles.map((battleTeams, index) => {
       const names = battleTeams.map(t => safe(t.sticker)).join(' <span class="versus">VS</span> ')
       return `<section class="battle-card">
         <div class="battle-heading"><strong>Battle ${index + 1}</strong><span>${names}</span></div>
-        <table class="teams-table">
-          <thead><tr>
-            <th class="team-head">Sticker / Crew</th>
-            <th>Danseur 1</th>
-            <th>Danseur 2</th>
-            <th>Commentaire</th>
-          </tr></thead>
-          <tbody>${battleTeams.map(teamRow).join('')}</tbody>
-        </table>
+        <div class="teams-row" style="grid-template-columns:repeat(${battleTeams.length},minmax(0,1fr))">
+          ${battleTeams.map(teamPanel).join('')}
+        </div>
       </section>`
     }).join('')
 
@@ -133,25 +132,26 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
         h1{font-size:18px;margin:0 0 3px;text-transform:uppercase;letter-spacing:.2px}
         .meta{font-size:10px;color:#555;margin:0 0 4px}
         .instruction{font-size:9px;color:#555;margin:0 0 7px;padding-bottom:5px;border-bottom:2px solid ${accent}}
-        .battle-grid{display:grid;grid-template-columns:1fr;gap:5px 7px;align-items:start}
+        .battle-grid{display:flex;flex-direction:column;gap:5px}
         .battle-card{page-break-inside:avoid;break-inside:avoid;border:1px solid #aaa;margin:0;min-width:0}
         .battle-heading{display:flex;justify-content:space-between;align-items:center;gap:5px;background:#f1f1f1;border-bottom:1px solid #aaa;padding:3px 5px;font-size:8px;text-transform:uppercase}
         .battle-heading strong{font-size:9px;white-space:nowrap}
         .versus{font-weight:800;color:#888;margin:0 2px}
-        .teams-table{width:100%;border-collapse:collapse;table-layout:fixed}
-        .teams-table th{background:#f7f7f7;border:1px solid #c7c7c7;padding:2px 3px;font-size:7px;text-transform:uppercase;text-align:center;line-height:1.05}
-        .teams-table th.team-head{text-align:left;width:43%}
-        .teams-table th:nth-child(2),.teams-table th:nth-child(3){width:12%}
-        .teams-table th:nth-child(4){width:33%}
-        .teams-table td{border:1px solid #c7c7c7;padding:2px 3px;line-height:1.05}
-        .team-col{font-size:7.5px;vertical-align:middle;overflow-wrap:anywhere}
-        .sticker{font-size:7.5px;font-weight:900;white-space:nowrap;margin-right:3px}
-        .crew-name{font-size:7.5px;text-transform:uppercase}
-        .score-box{height:18px;text-align:center;font-size:10px;font-weight:800}
-        .comment-box{height:18px}
+        .teams-row{display:grid;width:100%;align-items:stretch}
+        .team-panel{min-width:0;border-right:1px solid #c7c7c7}
+        .team-panel:last-child{border-right:0}
+        .team-grid{display:grid;grid-template-columns:13% 31% 11% 11% 34%;width:100%;height:100%}
+        .grid-label{background:#f7f7f7;border-right:1px solid #c7c7c7;border-bottom:1px solid #c7c7c7;padding:2px 2px;font-size:7px;font-weight:800;text-transform:uppercase;text-align:center;line-height:1.05;overflow-wrap:anywhere}
+        .grid-label:nth-child(5){border-right:0}
+        .grid-value{border-right:1px solid #c7c7c7;padding:3px 3px;min-height:20px;font-size:8px;line-height:1.05;overflow-wrap:anywhere}
+        .grid-value:nth-child(10){border-right:0}
+        .sticker-value{font-weight:900;white-space:nowrap}
+        .crew-value{font-weight:900;text-transform:uppercase}
+        .score-value{text-align:center;font-size:10px;font-weight:800}
+        .comment-value{min-height:25px}
         .empty{padding:20px;text-align:center;color:#666;border:1px dashed #aaa;font-size:10px}
         @page{size:A4 portrait;margin:8mm}
-        @media print{body{padding:0}.battle-grid{display:grid;grid-template-columns:1fr;gap:4px 6px}.battle-card{page-break-inside:avoid;break-inside:avoid}}
+        @media print{body{padding:0}.battle-grid{display:flex;flex-direction:column;gap:4px}.battle-card{page-break-inside:avoid;break-inside:avoid}}
         @media screen{body{max-width:800px;margin:0 auto;padding:18px;background:#fafafa}.battle-grid{gap:8px}.battle-card{background:#fff}}
       </style>
     </head><body>
