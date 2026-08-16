@@ -100,9 +100,9 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
       <div class="team-body">
         <div class="crew-value">${safe(crew.name)}</div>
         <div class="score-stack">
-          <div class="score-label">Danseur 1</div>
+          <div class="score-label">Danseur·euses 1</div>
           <div class="score-box">&nbsp;</div>
-          <div class="score-label">Danseur 2</div>
+          <div class="score-label">Danseur·euses 2</div>
           <div class="score-box">&nbsp;</div>
         </div>
       </div>
@@ -138,11 +138,12 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
         .battle-versus{display:flex;width:100%;align-items:stretch}
         .team-panel{flex:1;min-width:0}
         .team-id{height:24px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #777;font-size:12px;font-weight:900}
-        .team-body{display:grid;grid-template-columns:46% 54%;min-height:88px}
+        .team-body{display:grid;grid-template-columns:46% 54%;height:86px;min-height:0}
         .crew-value{display:flex;align-items:flex-start;padding:6px 5px;border-right:1px solid #777;font-size:10px;font-weight:900;text-transform:uppercase;line-height:1.1;overflow-wrap:anywhere}
-        .score-stack{display:grid;grid-template-rows:16px 27px 16px 27px}
+        .score-stack{display:grid;grid-template-rows:16px 1fr 16px 1fr;height:100%}
         .score-label{display:flex;align-items:center;justify-content:center;border-bottom:1px solid #777;background:#fafafa;font-size:8px;font-weight:800;text-transform:uppercase;line-height:1}
-        .score-box{border-bottom:1px solid #777;min-height:27px}
+        .score-box{min-height:0;border-bottom:1px solid #777}
+        .score-box:last-child{border-bottom:0}
         .vs-divider{flex:0 0 42px;display:flex;align-items:center;justify-content:center;border-left:1px solid #777;border-right:1px solid #777;font-size:17px;font-weight:900;color:#333}
         .empty{padding:20px;text-align:center;color:#666;border:1px dashed #aaa;font-size:10px}
         @page{size:A4 portrait;margin:8mm}
@@ -152,7 +153,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     </head><body>
       <h1>${safe(battle.name)} — Cercle ${cypher}</h1>
       <p class="meta">Juges : <strong>${safe(judgeNames)}</strong> &nbsp;|&nbsp; ${new Date().toLocaleDateString('fr-FR')} &nbsp;|&nbsp; ${filtered.length} équipe(s)</p>
-      <p class="instruction">Noter chaque danseur de chaque équipe séparément sur 5.</p>
+      <p class="instruction">Noter les danseur·euses de chaque équipe séparément sur 5.</p>
       ${battleCards ? `<div class="battle-grid">${battleCards}</div>` : '<div class="empty">Aucune équipe inscrite dans le Cercle ' + cypher + '.</div>'}
     </body></html>`)
     w.document.close()
