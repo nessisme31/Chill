@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 // ── Constantes bracket flat (style référence)
@@ -45,6 +45,7 @@ export default function BracketTab({ battle, crews }) {
   const [loading,       setLoading]       = useState(true)
   const [locking,       setLocking]       = useState(false)
   const [viewportWidth, setViewportWidth] = useState(() => typeof window === 'undefined' ? 1440 : window.innerWidth)
+  const displayChannelRef = useRef(null)
 
   useEffect(() => { loadData() }, [battle.id])
 
@@ -162,6 +163,16 @@ export default function BracketTab({ battle, crews }) {
     setLocking(false)
   }
 
+  const resetBracket = async () => {
+    if (!window.confirm('Refaire le bracket va effacer les vainqueurs et les tours déjà avancés. Continuer ?')) return
+    setLocking(true)
+    await supabase.from('bracket_slots').delete().eq('battle_id', battle.id)
+    await supabase.from('battles').update({ bracket_locked: false }).eq('id', battle.id)
+    setBracket(emptyBracket())
+    setBracketLocked(false)
+    setLocking(false)
+  }
+
   const allR1Filled = Object.values(bracket[1]).every(m => m.team1 && m.team2)
   const champion = bracket[4][1].winner ? bracket[4][1][bracket[4][1].winner] : null
   const bracketBaseWidth = COL * 7
@@ -173,6 +184,12 @@ export default function BracketTab({ battle, crews }) {
   const bracketScale = Math.min(2.15, Math.max(0.78, (viewportWidth - 96) / bracketBaseWidth))
   const bracketViewportWidth = bracketBaseWidth * bracketScale
   const bracketViewportHeight = bracketBaseHeight * bracketScale
+
+  useEffect(() => {
+    displayChannelRef.current?.postMessage({ bracket, champion })
+  }, [bracket, champion])
+
+  useEffect(() => () => displayChannelRef.current?.close(), [])
 
   // ─── Rendu d'une boîte équipe individuelle ───────────────────────────────────
   const renderTeamBox = (round, match, slotKey, side) => {
@@ -324,6 +341,93 @@ export default function BracketTab({ battle, crews }) {
     )
   }
 
+  // ─── Affichage écran public ───────────────────────────────────────────────────
+  const openDisplayMode = () => {
+    const channelName = `citc_bracket_display_${battle.id}`
+    const initialState = JSON.stringify({ bracket, champion }).replace(/</g, '\\u003c')
+    const w = window.open('', '_blank')
+    if (!w) { alert('Autorisez les popups pour ouvrir l’affichage du bracket'); return }
+
+    displayChannelRef.current?.close()
+    displayChannelRef.current = new BroadcastChannel(channelName)
+
+    const html = `<!DOCTYPE html><html lang="fr"><head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>${battle.name} — Bracket écran</title>
+      <style>
+        *{box-sizing:border-box}
+        html,body{margin:0;min-height:100%;background:#050505;color:#fff;font-family:Arial,Helvetica,sans-serif}
+        body{padding:24px 32px;overflow:auto}
+        .top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px}
+        .title{font-size:clamp(24px,2.1vw,42px);font-weight:900;text-transform:uppercase;letter-spacing:.5px}
+        .sub{color:#888;font-size:clamp(12px,1vw,20px);margin-top:5px}
+        .fullscreen{background:#161616;border:1px solid #444;color:#ddd;border-radius:6px;padding:9px 14px;font-size:14px;cursor:pointer}
+        .bracket{display:grid;grid-template-columns:1.35fr 1fr .85fr .85fr .85fr 1fr 1.35fr;gap:clamp(12px,1.4vw,28px);min-height:calc(100vh - 120px);align-items:stretch}
+        .round{display:flex;flex-direction:column;justify-content:space-around;gap:clamp(10px,1vw,20px);min-width:0}
+        .round>div[id]{display:flex;flex:1;flex-direction:column;justify-content:space-around;gap:clamp(10px,1vw,20px)}
+        .round.left{text-align:left}.round.right{text-align:right}
+        .round.final{justify-content:center}
+        .match{background:#111;border:1px solid #333;border-radius:7px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.28)}
+        .final .match{border-color:#c79617;box-shadow:0 0 18px rgba(212,160,23,.2)}
+        .team{min-height:clamp(46px,5.2vh,72px);display:flex;align-items:center;padding:8px 14px;font-size:clamp(15px,1.2vw,28px);font-weight:800;text-transform:uppercase;line-height:1.08;overflow-wrap:anywhere}
+        .team + .team{border-top:1px solid #333}
+        .team.pending{color:#555;font-weight:600;text-transform:none}
+        .team.win{background:#122a12;color:#76ff76}
+        .team.los{opacity:.3;text-decoration:line-through}
+        .round-label{color:#666;font-size:clamp(10px,.75vw,14px);font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:5px}
+        @media (max-width:900px){body{padding:16px}.bracket{grid-template-columns:repeat(7,minmax(150px,1fr));overflow-x:auto;min-height:calc(100vh - 100px)}.team{font-size:16px}}
+      </style>
+      </head><body>
+        <div class="top">
+          <div><div class="title">${battle.name} — Bracket</div><div class="sub">TOP 16 · affichage public</div></div>
+          <button class="fullscreen" onclick="document.documentElement.requestFullscreen?.()">⛶ Plein écran</button>
+        </div>
+        <div class="bracket">
+          <div class="round left"><div class="round-label">1/8 finale</div><div id="leftR1"></div></div>
+          <div class="round left"><div class="round-label">Quarts</div><div id="leftR2"></div></div>
+          <div class="round left"><div class="round-label">Demi-finale</div><div id="leftR3"></div></div>
+          <div class="round final"><div class="round-label">Finale</div><div id="final"></div></div>
+          <div class="round right"><div class="round-label">Demi-finale</div><div id="rightR3"></div></div>
+          <div class="round right"><div class="round-label">Quarts</div><div id="rightR2"></div></div>
+          <div class="round right"><div class="round-label">1/8 finale</div><div id="rightR1"></div></div>
+        </div>
+        <script>
+          const initial = ${initialState};
+          const channel = new BroadcastChannel(${JSON.stringify(channelName)});
+          const esc = (value) => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+          const matchHtml = (m) => {
+            const match = m || { team1:null, team2:null, winner:null };
+            const row = (team, slot) => {
+              const win = match.winner === slot;
+              const los = match.winner && match.winner !== slot;
+              const cls = win ? ' win' : los ? ' los' : (!team ? ' pending' : '');
+              return '<div class="team' + cls + '">' + (team ? esc(team.name) : 'À déterminer') + (win ? ' ✓' : '') + '</div>';
+            };
+            return '<div class="match">' + row(match.team1,'team1') + row(match.team2,'team2') + '</div>';
+          };
+          const renderColumn = (id, data, round, matches) => {
+            document.getElementById(id).innerHTML = matches.map(m => matchHtml(data.bracket?.[round]?.[m])).join('');
+          };
+          const render = (data) => {
+            renderColumn('leftR1', data, 1, [1,2,3,4]);
+            renderColumn('leftR2', data, 2, [1,2]);
+            renderColumn('leftR3', data, 3, [1]);
+            renderColumn('final', data, 4, [1]);
+            renderColumn('rightR3', data, 3, [2]);
+            renderColumn('rightR2', data, 2, [3,4]);
+            renderColumn('rightR1', data, 1, [5,6,7,8]);
+          };
+          render(initial);
+          channel.onmessage = (event) => render(event.data);
+        </script>
+      </body></html>`
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    displayChannelRef.current.postMessage({ bracket, champion })
+  }
+
   // ─── Impression ──────────────────────────────────────────────────────────────
   const printBracket = () => {
     const S = 30, M = 61, G1 = 8, G2 = 77
@@ -427,8 +531,15 @@ ${champion?`<div style="text-align:center;margin-top:10px;padding:6px;background
         </div>
       )}
 
-      {/* ── Bouton impression ── */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
+      {/* ── Actions bracket ── */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 6 }}>
+        {bracketLocked && (
+          <button className="btn btn-ghost btn-sm" onClick={resetBracket} disabled={locking}
+            style={{ color: 'var(--gold)', borderColor: 'var(--gold-dim)' }}>
+            {locking ? '…' : '↻ Refaire le bracket'}
+          </button>
+        )}
+        <button className="btn btn-ghost btn-sm" onClick={openDisplayMode}>🖥 Afficher</button>
         <button className="btn btn-ghost btn-sm" onClick={printBracket}>🖨 Imprimer</button>
       </div>
 
