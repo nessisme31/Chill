@@ -426,8 +426,8 @@ export default function BracketTab({ battle, crews }) {
         .team{min-height:clamp(46px,5.2vh,72px);display:flex;align-items:center;padding:8px 14px;font-size:clamp(15px,1.2vw,28px);font-weight:800;text-transform:uppercase;line-height:1.08;overflow-wrap:anywhere}
         .team + .team{border-top:1px solid #333}
         .team.pending{color:#555;font-weight:600;text-transform:none}
-        .team.win{background:#122a12;color:#76ff76}
-        .team.los{opacity:.3}
+        .team.win{background:#3a2a05;color:#f1c84b}
+        .team.los{background:#2a0e0e;color:#e06a6a;opacity:.55}
         .round-label{color:#666;font-size:clamp(10px,.75vw,14px);font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:5px}
         @media (max-width:900px){body{padding:16px}.bracket{grid-template-columns:repeat(7,minmax(150px,1fr));overflow-x:auto;min-height:calc(100vh - 100px)}.team{font-size:16px}}
       </style>
