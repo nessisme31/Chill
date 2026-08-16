@@ -427,7 +427,7 @@ export default function BracketTab({ battle, crews }) {
         .team + .team{border-top:1px solid #333}
         .team.pending{color:#555;font-weight:600;text-transform:none}
         .team.win{background:#122a12;color:#76ff76}
-        .team.los{opacity:.3;text-decoration:line-through}
+        .team.los{opacity:.3}
         .round-label{color:#666;font-size:clamp(10px,.75vw,14px);font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:5px}
         @media (max-width:900px){body{padding:16px}.bracket{grid-template-columns:repeat(7,minmax(150px,1fr));overflow-x:auto;min-height:calc(100vh - 100px)}.team{font-size:16px}}
       </style>
@@ -465,7 +465,7 @@ export default function BracketTab({ battle, crews }) {
               const win = match.winner === slot;
               const los = match.winner && match.winner !== slot;
               const cls = win ? ' win' : los ? ' los' : (!team ? ' pending' : '');
-              return '<div class="team' + cls + '">' + (team ? esc(team.name) : 'À déterminer') + (win ? ' ✓' : '') + '</div>';
+              return '<div class="team' + cls + '">' + (team ? esc(team.name) : 'À déterminer') + '</div>';
             };
             return '<div class="match">' + row(match.team1,'team1') + row(match.team2,'team2') + '</div>';
           };
