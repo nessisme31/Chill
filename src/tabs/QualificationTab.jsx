@@ -133,7 +133,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
         h1{font-size:18px;margin:0 0 3px;text-transform:uppercase;letter-spacing:.2px}
         .meta{font-size:10px;color:#555;margin:0 0 4px}
         .instruction{font-size:9px;color:#555;margin:0 0 7px;padding-bottom:5px;border-bottom:2px solid ${accent}}
-        .battle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 7px;align-items:start}
+        .battle-grid{display:grid;grid-template-columns:1fr;gap:5px 7px;align-items:start}
         .battle-card{page-break-inside:avoid;break-inside:avoid;border:1px solid #aaa;margin:0;min-width:0}
         .battle-heading{display:flex;justify-content:space-between;align-items:center;gap:5px;background:#f1f1f1;border-bottom:1px solid #aaa;padding:3px 5px;font-size:8px;text-transform:uppercase}
         .battle-heading strong{font-size:9px;white-space:nowrap}
@@ -151,7 +151,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
         .comment-box{height:18px}
         .empty{padding:20px;text-align:center;color:#666;border:1px dashed #aaa;font-size:10px}
         @page{size:A4 portrait;margin:8mm}
-        @media print{body{padding:0}.battle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 6px}.battle-card{page-break-inside:avoid;break-inside:avoid}}
+        @media print{body{padding:0}.battle-grid{display:grid;grid-template-columns:1fr;gap:4px 6px}.battle-card{page-break-inside:avoid;break-inside:avoid}}
         @media screen{body{max-width:800px;margin:0 auto;padding:18px;background:#fafafa}.battle-grid{gap:8px}.battle-card{background:#fff}}
       </style>
     </head><body>
