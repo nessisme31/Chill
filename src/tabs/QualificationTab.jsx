@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { crewDisplay } from '../lib/countries'
 
 // Créer des paires de battles (impair → trio final)
 function makePairs(arr) {
@@ -98,13 +97,13 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
 
     const teamPanel = (crew) => `<div class="team-panel">
       <div class="team-grid">
-        <div class="grid-label">Sticker</div>
+        <div class="grid-label">&nbsp;</div>
         <div class="grid-label">Crew</div>
         <div class="grid-label">Danseur 1</div>
         <div class="grid-label">Danseur 2</div>
         <div class="grid-label">Commentaire</div>
         <div class="grid-value sticker-value" style="color:${accent}">${safe(crew.sticker)}</div>
-        <div class="grid-value crew-value">${safe(crewDisplay(crew))}</div>
+        <div class="grid-value crew-value">${safe(crew.name)}</div>
         <div class="grid-value score-value">&nbsp;</div>
         <div class="grid-value score-value">&nbsp;</div>
         <div class="grid-value comment-value">&nbsp;</div>
@@ -140,7 +139,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
         .teams-row{display:grid;width:100%;align-items:stretch}
         .team-panel{min-width:0;border-right:1px solid #c7c7c7}
         .team-panel:last-child{border-right:0}
-        .team-grid{display:grid;grid-template-columns:13% 31% 11% 11% 34%;width:100%;height:100%}
+        .team-grid{display:grid;grid-template-columns:7% 35% 11% 11% 36%;width:100%;height:100%}
         .grid-label{background:#f7f7f7;border-right:1px solid #c7c7c7;border-bottom:1px solid #c7c7c7;padding:2px 2px;font-size:7px;font-weight:800;text-transform:uppercase;text-align:center;line-height:1.05;overflow-wrap:anywhere}
         .grid-label:nth-child(5){border-right:0}
         .grid-value{border-right:1px solid #c7c7c7;padding:3px 3px;min-height:20px;font-size:8px;line-height:1.05;overflow-wrap:anywhere}
