@@ -117,9 +117,10 @@ export default function Top16Tab({ battle, judges, crews }) {
     const num = val === '' ? null : Math.min(10, Math.max(0, parseFloat(val) || 0))
     setScores(prev => ({ ...prev, [crewId]: { ...(prev[crewId] || {}), [judgeId]: num } }))
     setSaving(true)
-    await supabase.from('top16_scores').upsert({
+    const { error } = await supabase.from('top16_scores').upsert({
       battle_id: battle.id, crew_id: crewId, judge_id: judgeId, score: num,
-    })
+    }, { onConflict: 'battle_id,crew_id,judge_id' })
+    if (error) alert('Impossible d’enregistrer la note : ' + error.message)
     setSaving(false)
   }
 
