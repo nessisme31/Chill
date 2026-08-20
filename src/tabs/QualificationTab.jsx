@@ -25,6 +25,8 @@ function sortByCypher(crews, cypher) {
 
 export default function QualificationTab({ battle, judges, djs, speakers, crews }) {
   const [assignments, setAssignments] = useState({})
+  const [qualScores,  setQualScores]  = useState({})
+  const [savingScore, setSavingScore] = useState(false)
   const [showAssign,  setShowAssign]  = useState(false)
   const [idxA,        setIdxA]        = useState(0)
   const [idxB,        setIdxB]        = useState(0)
@@ -38,7 +40,10 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
   const pairsA = useMemo(() => makePairs(sortByCypher(crews, 'A')), [crews])
   const pairsB = useMemo(() => makePairs(sortByCypher(crews, 'B')), [crews])
 
-  useEffect(() => { loadAssignments() }, [battle.id])
+  useEffect(() => {
+    loadAssignments()
+    loadQualificationScores()
+  }, [battle.id])
 
   useEffect(() => {
     channelRef.current = new BroadcastChannel('citc_qualif_' + battle.id)
@@ -52,6 +57,45 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
       data.forEach(j => { if (j.cypher) map[j.id] = j.cypher })
       setAssignments(map)
     }
+  }
+
+  const loadQualificationScores = async () => {
+    const { data } = await supabase
+      .from('qual_scores')
+      .select('crew_id, judge_id, score')
+      .eq('battle_id', battle.id)
+    if (data) {
+      const map = {}
+      data.forEach(row => {
+        if (!map[row.crew_id]) map[row.crew_id] = {}
+        map[row.crew_id][row.judge_id] = row.score
+      })
+      setQualScores(map)
+    }
+  }
+
+  const updateQualificationScore = async (crewId, judgeId, value) => {
+    const score = value === '' ? null : Math.min(5, Math.max(1, Number(value)))
+    setQualScores(prev => ({
+      ...prev,
+      [crewId]: { ...(prev[crewId] || {}), [judgeId]: score },
+    }))
+    setSavingScore(true)
+
+    if (score === null) {
+      await supabase.from('qual_scores').delete()
+        .eq('battle_id', battle.id)
+        .eq('crew_id', crewId)
+        .eq('judge_id', judgeId)
+    } else {
+      await supabase.from('qual_scores').upsert({
+        battle_id: battle.id,
+        crew_id: crewId,
+        judge_id: judgeId,
+        score,
+      }, { onConflict: 'battle_id,crew_id,judge_id' })
+    }
+    setSavingScore(false)
   }
 
   const assignJudge = async (judgeId, val) => {
@@ -401,6 +445,73 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
           ))}
         </div>
       )}
+
+      {/* ══════ NOTES DE QUALIFICATION ══════ */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="flex-between" style={{ marginBottom: 14 }}>
+          <div>
+            <div className="title-sm">Notes de qualification</div>
+            <div className="caption">Saisis les notes de chaque juge de 1 à 5. Elles seront disponibles dans le classement public.</div>
+          </div>
+          {savingScore && <span className="caption">Enregistrement…</span>}
+        </div>
+
+        {['A', 'B'].map(side => {
+          const sideJudges = judges.filter(j => assignments[j.id] === side)
+          const sideCrews = sortByCypher(crews, side)
+          const isB = side === 'B'
+          return (
+            <div key={side} style={{ marginTop: side === 'A' ? 0 : 18 }}>
+              <div style={{ color: isB ? 'var(--red)' : 'var(--text2)', fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
+                Cercle {side}
+              </div>
+              {sideJudges.length === 0 ? (
+                <div className="caption" style={{ padding: '10px 0' }}>Aucun juge assigné à ce cercle.</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
+                    <thead>
+                      <tr style={{ color: 'var(--text3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
+                        <th style={{ textAlign: 'left', padding: '7px 8px', borderBottom: '1px solid var(--border2)' }}>Sticker / Crew</th>
+                        {sideJudges.map(j => <th key={j.id} style={{ width: 84, padding: '7px 5px', borderBottom: '1px solid var(--border2)' }}>{j.name}</th>)}
+                        <th style={{ width: 70, padding: '7px 5px', borderBottom: '1px solid var(--border2)' }}>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sideCrews.map(c => {
+                        const total = sideJudges.reduce((sum, j) => sum + (Number(qualScores[c.id]?.[j.id]) || 0), 0)
+                        return (
+                          <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '7px 8px' }}>
+                              <strong style={{ color: isB ? 'var(--red)' : 'var(--text2)', marginRight: 8 }}>{c.sticker}</strong>
+                              <span style={{ fontWeight: 700, textTransform: 'uppercase' }}>{c.name}</span>
+                            </td>
+                            {sideJudges.map(j => (
+                              <td key={j.id} style={{ padding: '5px', textAlign: 'center' }}>
+                                <input
+                                  className="input"
+                                  type="number"
+                                  min="1"
+                                  max="5"
+                                  step="1"
+                                  value={qualScores[c.id]?.[j.id] ?? ''}
+                                  onChange={e => updateQualificationScore(c.id, j.id, e.target.value)}
+                                  style={{ width: 64, padding: '6px 8px', textAlign: 'center' }}
+                                />
+                              </td>
+                            ))}
+                            <td style={{ padding: '7px 5px', textAlign: 'center', fontWeight: 800 }}>{total || '—'}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
 
       {/* ══════ GESTION BATTLES ══════ */}
       <div style={{ borderTop: '1px solid var(--border2)', paddingTop: 20 }}>
