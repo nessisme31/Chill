@@ -13,6 +13,8 @@ export default function Top16Tab({ battle, judges, crews }) {
   const [saving,           setSaving]           = useState(false)
   const [sending,          setSending]          = useState(false)
   const [bracketSent,      setBracketSent]      = useState(false)
+  const [publishing,       setPublishing]       = useState(false)
+  const [publishedAt,      setPublishedAt]      = useState(null)
   const [selectedWaiting,  setSelectedWaiting]  = useState(new Set())
 
   useEffect(() => { loadData() }, [battle.id])
@@ -31,6 +33,12 @@ export default function Top16Tab({ battle, judges, crews }) {
     // Statut validation
     const { data: bData } = await supabase.from('battles').select('top16_validated').eq('id', battle.id).single()
     if (bData?.top16_validated) setValidated(true)
+    const { data: publication } = await supabase
+      .from('published_battles')
+      .select('published_at, is_published')
+      .eq('battle_id', battle.id)
+      .maybeSingle()
+    setPublishedAt(publication?.is_published ? publication.published_at : null)
     // Guests
     const { data: gData } = await supabase.from('top16_guests').select('*').eq('battle_id', battle.id).order('position')
     if (gData) setGuests(gData)
@@ -142,6 +150,58 @@ export default function Top16Tab({ battle, judges, crews }) {
     })
   }
 
+  // ── Publication du classement pour le site WordPress
+  const publishRanking = async () => {
+    if (crewsRanked.length === 0) return
+    setPublishing(true)
+
+    const { data: bracketRows } = await supabase
+      .from('bracket_slots')
+      .select('*')
+      .eq('battle_id', battle.id)
+      .order('round')
+      .order('match_number')
+      .order('position')
+
+    const serializeTeam = (team, position) => ({
+      position,
+      id: team.id || null,
+      name: team.name || '',
+      member1: team.member1 || '',
+      member2: team.member2 || '',
+      country_code: team.country_code || null,
+      cypher: team.cypher || null,
+      sticker: team.sticker || null,
+      total: team.total == null ? null : Number(team.total),
+      is_guest: Boolean(team.isGuest),
+    })
+
+    const ranking = crewsRanked.map((team, index) => serializeTeam(team, index + 1))
+    const top16Published = final16.map((team, index) => serializeTeam(team, index + 1))
+    const timestamp = new Date().toISOString()
+
+    const { error } = await supabase.from('published_battles').upsert({
+      battle_id: battle.id,
+      battle_name: battle.name,
+      battle_date: battle.date || null,
+      venue: battle.venue || null,
+      is_published: true,
+      published_at: publishedAt || timestamp,
+      updated_at: timestamp,
+      ranking,
+      top16: top16Published,
+      bracket: bracketRows || [],
+    }, { onConflict: 'battle_id' })
+
+    if (error) {
+      alert('Impossible de publier le classement : ' + error.message)
+    } else {
+      setPublishedAt(publishedAt || timestamp)
+      alert('Classement publié sur le site Chill in the city.')
+    }
+    setPublishing(false)
+  }
+
   // ── Envoi au bracket avec seeding + gestion d'erreur
   const sendToBracket = async () => {
     if (!canSendToBracket) return
@@ -210,6 +270,18 @@ export default function Top16Tab({ battle, judges, crews }) {
           {view === 'ranking' && (
             <>
               <button className="btn btn-ghost" onClick={() => setView('scores')}>← Retour</button>
+              <button
+                className="btn btn-ghost"
+                disabled={publishing || crewsRanked.length === 0}
+                onClick={publishRanking}
+                style={{
+                  color: publishedAt ? 'var(--green)' : 'var(--gold)',
+                  borderColor: publishedAt ? 'var(--green-dim)' : 'var(--gold-dim)',
+                  opacity: publishing || crewsRanked.length === 0 ? 0.45 : 1,
+                }}
+              >
+                {publishing ? '…' : publishedAt ? '✓ Mettre à jour la publication' : '🌐 Publier le classement'}
+              </button>
               <button
                 className="btn btn-white"
                 disabled={!canSendToBracket || sending}
