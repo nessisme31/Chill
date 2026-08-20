@@ -155,27 +155,21 @@ export default function Top16Tab({ battle, judges, crews }) {
     if (crewsRanked.length === 0) return
     setPublishing(true)
 
-    const [{ data: bracketRows }, { data: qualificationRows }] = await Promise.all([
-      supabase.from('bracket_slots')
-        .select('*')
-        .eq('battle_id', battle.id)
-        .order('round')
-        .order('match_number')
-        .order('position'),
-      supabase.from('top16_scores')
-        .select('crew_id, judge_id, score')
-        .eq('battle_id', battle.id),
-    ])
+    const { data: bracketRows } = await supabase
+      .from('bracket_slots')
+      .select('*')
+      .eq('battle_id', battle.id)
+      .order('round')
+      .order('match_number')
+      .order('position')
 
     const judgeById = new Map(judges.map(judge => [String(judge.id), judge]))
-    const votesByCrew = (qualificationRows || []).reduce((acc, vote) => {
-      if (!acc[vote.crew_id]) acc[vote.crew_id] = []
-      const judge = judgeById.get(String(vote.judge_id))
-      acc[vote.crew_id].push({
-        judge_id: vote.judge_id,
-        judge_name: judge?.name || 'Juge',
-        score: vote.score == null ? null : Number(vote.score),
-      })
+    const votesByCrew = Object.entries(scores).reduce((acc, [crewId, judgeScores]) => {
+      acc[crewId] = Object.entries(judgeScores).map(([judgeId, score]) => ({
+        judge_id: judgeId,
+        judge_name: judgeById.get(String(judgeId))?.name || 'Juge',
+        score: score == null ? null : Number(score),
+      }))
       return acc
     }, {})
 
