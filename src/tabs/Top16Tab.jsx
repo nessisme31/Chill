@@ -162,7 +162,7 @@ export default function Top16Tab({ battle, judges, crews }) {
         .order('round')
         .order('match_number')
         .order('position'),
-      supabase.from('qual_scores')
+      supabase.from('top16_scores')
         .select('crew_id, judge_id, score')
         .eq('battle_id', battle.id),
     ])
