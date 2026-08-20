@@ -155,13 +155,29 @@ export default function Top16Tab({ battle, judges, crews }) {
     if (crewsRanked.length === 0) return
     setPublishing(true)
 
-    const { data: bracketRows } = await supabase
-      .from('bracket_slots')
-      .select('*')
-      .eq('battle_id', battle.id)
-      .order('round')
-      .order('match_number')
-      .order('position')
+    const [{ data: bracketRows }, { data: qualificationRows }] = await Promise.all([
+      supabase.from('bracket_slots')
+        .select('*')
+        .eq('battle_id', battle.id)
+        .order('round')
+        .order('match_number')
+        .order('position'),
+      supabase.from('qual_scores')
+        .select('crew_id, judge_id, score')
+        .eq('battle_id', battle.id),
+    ])
+
+    const judgeById = new Map(judges.map(judge => [String(judge.id), judge]))
+    const votesByCrew = (qualificationRows || []).reduce((acc, vote) => {
+      if (!acc[vote.crew_id]) acc[vote.crew_id] = []
+      const judge = judgeById.get(String(vote.judge_id))
+      acc[vote.crew_id].push({
+        judge_id: vote.judge_id,
+        judge_name: judge?.name || 'Juge',
+        score: vote.score == null ? null : Number(vote.score),
+      })
+      return acc
+    }, {})
 
     const serializeTeam = (team, position) => ({
       position,
@@ -174,6 +190,7 @@ export default function Top16Tab({ battle, judges, crews }) {
       sticker: team.sticker || null,
       total: team.total == null ? null : Number(team.total),
       is_guest: Boolean(team.isGuest),
+      judge_votes: votesByCrew[team.id] || [],
     })
 
     const ranking = crewsRanked.map((team, index) => serializeTeam(team, index + 1))
