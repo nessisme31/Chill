@@ -202,6 +202,23 @@ export default function Top16Tab({ battle, judges, crews }) {
     setPublishing(false)
   }
 
+  const deletePublication = async () => {
+    if (!publishedAt || !window.confirm('Supprimer la publication de ce classement du site public ?')) return
+    setPublishing(true)
+    const { error } = await supabase
+      .from('published_battles')
+      .delete()
+      .eq('battle_id', battle.id)
+
+    if (error) {
+      alert('Impossible de supprimer la publication : ' + error.message)
+    } else {
+      setPublishedAt(null)
+      alert('Publication supprimée du site public.')
+    }
+    setPublishing(false)
+  }
+
   // ── Envoi au bracket avec seeding + gestion d'erreur
   const sendToBracket = async () => {
     if (!canSendToBracket) return
@@ -282,6 +299,16 @@ export default function Top16Tab({ battle, judges, crews }) {
               >
                 {publishing ? '…' : publishedAt ? '✓ Mettre à jour la publication' : '🌐 Publier le classement'}
               </button>
+              {publishedAt && (
+                <button
+                  className="btn btn-ghost"
+                  disabled={publishing}
+                  onClick={deletePublication}
+                  style={{ color: 'var(--red)', borderColor: 'var(--red-dim)', opacity: publishing ? 0.45 : 1 }}
+                >
+                  🗑 Supprimer la publication
+                </button>
+              )}
               <button
                 className="btn btn-white"
                 disabled={!canSendToBracket || sending}
