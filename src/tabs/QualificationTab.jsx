@@ -23,7 +23,7 @@ function sortByCypher(crews, cypher) {
     .sort((a, b) => (parseInt(a.sticker?.slice(1)) || 0) - (parseInt(b.sticker?.slice(1)) || 0))
 }
 
-export default function QualificationTab({ battle, judges, djs, speakers, crews }) {
+export default function QualificationTab({ battle, judges, djs, speakers, crews, refreshCrews }) {
   const [assignments, setAssignments] = useState({})
   const [showAssign,  setShowAssign]  = useState(false)
   const [idxA,        setIdxA]        = useState(0)
@@ -42,8 +42,20 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
 
   useEffect(() => {
     channelRef.current = new BroadcastChannel('citc_qualif_' + battle.id)
+    channelRef.current.onmessage = event => {
+      if (event.data?.requestRefresh) refreshCrews?.()
+    }
     return () => channelRef.current?.close()
-  }, [battle.id])
+  }, [battle.id, refreshCrews])
+
+  useEffect(() => {
+    channelRef.current?.postMessage({
+      idxA,
+      idxB,
+      crewsA: sortByCypher(crews, 'A'),
+      crewsB: sortByCypher(crews, 'B'),
+    })
+  }, [crews, idxA, idxB])
 
   const loadAssignments = async () => {
     const { data } = await supabase.from('judges').select('id, cypher').eq('battle_id', battle.id)
@@ -236,8 +248,8 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
     return p;
   }
 
-  const pairsA = makePairs(crewsA);
-  const pairsB = makePairs(crewsB);
+  let pairsA = makePairs(crewsA);
+  let pairsB = makePairs(crewsB);
   let iA = ${idxA}, iB = ${idxB};
 
   function renderSide(side, pairs, idx) {
@@ -279,11 +291,16 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
 
   const ch = new BroadcastChannel('citc_qualif_${battle.id}');
   ch.onmessage = (e) => {
-    iA = e.data.idxA; iB = e.data.idxB;
+    if (e.data.requestRefresh) return;
+    if (e.data.crewsA) pairsA = makePairs(e.data.crewsA);
+    if (e.data.crewsB) pairsB = makePairs(e.data.crewsB);
+    if (typeof e.data.idxA === 'number') iA = e.data.idxA;
+    if (typeof e.data.idxB === 'number') iB = e.data.idxB;
     renderSide('A', pairsA, iA);
     renderSide('B', pairsB, iB);
   };
 
+  setInterval(() => ch.postMessage({ requestRefresh: true }), 30000);
   renderSide('A', pairsA, iA);
   renderSide('B', pairsB, iB);
 </script>
@@ -373,6 +390,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews 
           }
         </button>
         <div className="flex" style={{ gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => refreshCrews?.()}>↻ Actualiser les équipes</button>
           <button className="btn btn-ghost btn-sm" onClick={openDisplayMode}>🖥 Affichage</button>
           <button className="btn btn-ghost btn-sm" onClick={exportDanseurs}>⬇ CSV</button>
           <button className="btn btn-ghost btn-sm" onClick={() => printSheets('A')}>🖨 Imprimer Cercle A</button>
