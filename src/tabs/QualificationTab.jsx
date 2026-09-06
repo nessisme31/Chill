@@ -446,7 +446,9 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
             const isB    = side === 'B'
             const cur    = pairs[idx]
             const isTrio = cur?.length === 3
-            const upcoming = pairs.slice(idx + 1, idx + 6)
+            // Dans l'administration, afficher toutes les battles restantes
+            // pour vérifier immédiatement si une actualisation est nécessaire.
+            const upcoming = pairs.slice(idx + 1)
 
             return (
               <div key={side} className="card" style={{ border: isB ? '1px solid #3d0000' : '1px solid var(--border2)' }}>
