@@ -465,7 +465,7 @@ export default function BracketTab({ battle, crews }) {
               if (!team) return 16;
               const name = String(team.name || '');
               const available = round === 1 ? 230 : round === 2 ? 180 : round === 3 ? 145 : 210;
-              return Math.max(7, Math.min(26, available / Math.max(name.length * 0.58, 1)));
+              return Math.max(7, Math.min(18, available / Math.max(name.length * 0.58, 1)));
             };
             const row = (team, slot) => {
               const win = match.winner === slot;
