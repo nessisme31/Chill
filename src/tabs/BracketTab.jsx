@@ -414,22 +414,22 @@ export default function BracketTab({ battle, crews }) {
       <title>${battle.name} — Bracket écran</title>
       <style>
         *{box-sizing:border-box}
-        html,body{margin:0;min-height:100%;background:#050505;color:#fff;font-family:Arial,Helvetica,sans-serif}
-        body{padding:24px 32px;overflow:auto}
-        .bracket{display:grid;grid-template-columns:1.35fr 1fr .85fr .85fr .85fr 1fr 1.35fr;gap:clamp(12px,1.4vw,28px);min-height:100vh;align-items:stretch}
-        .round{display:flex;flex-direction:column;justify-content:space-around;gap:clamp(10px,1vw,20px);min-width:0}
-        .round>div[id]{display:flex;flex:1;flex-direction:column;justify-content:space-around;gap:clamp(10px,1vw,20px)}
+        html,body{width:100vw;height:100vh;margin:0;background:#050505;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
+        body{padding:0;background-attachment:fixed;background-size:cover;background-position:center}
+        .bracket{width:100vw;height:100vh;min-height:0;padding:clamp(8px,1.4vw,26px);display:grid;grid-template-columns:1.35fr 1fr .85fr .85fr .85fr 1fr 1.35fr;gap:clamp(8px,1.2vw,24px);align-items:stretch;overflow:hidden}
+        .round{display:flex;flex-direction:column;justify-content:space-around;gap:clamp(8px,1vh,18px);min-width:0;min-height:0}
+        .round>div[id]{display:flex;flex:1;min-height:0;flex-direction:column;justify-content:space-around;gap:clamp(8px,1vh,18px)}
         .round.left{text-align:left}.round.right{text-align:right}
         .round.final{justify-content:center}
-        .match{background:#111;border:1px solid #333;border-radius:7px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.28)}
+        .match{background:#111;border:1px solid #333;border-radius:7px;overflow:visible;box-shadow:0 4px 18px rgba(0,0,0,.28)}
         .final .match{border-color:#c79617;box-shadow:0 0 18px rgba(212,160,23,.2)}
-        .team{min-height:clamp(46px,5.2vh,72px);display:flex;align-items:center;padding:8px 14px;font-size:clamp(15px,1.2vw,28px);font-weight:800;text-transform:uppercase;line-height:1.08;overflow-wrap:anywhere}
+        .team{min-height:clamp(34px,5.2vh,68px);display:flex;align-items:center;padding:6px 10px;font-size:clamp(8px,1.2vw,26px);font-weight:800;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:visible;text-overflow:clip}
         .team + .team{border-top:1px solid #333}
         .team.pending{color:#555;font-weight:600;text-transform:none}
         .team.win{background:#3a2a05;color:#f1c84b}
-        .team.los{background:#2a0e0e;color:#e06a6a;opacity:.55}
-        .round-label{color:#666;font-size:clamp(10px,.75vw,14px);font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:5px}
-        @media (max-width:900px){body{padding:16px}.bracket{grid-template-columns:repeat(7,minmax(150px,1fr));overflow-x:auto;min-height:calc(100vh - 100px)}.team{font-size:16px}}
+        .team.los{background:#616161;color:#f0f0f0;opacity:1}
+        .round-label{display:none}
+        @media (max-width:900px){.bracket{grid-template-columns:repeat(7,minmax(120px,1fr));overflow-x:hidden}.team{font-size:clamp(8px,1.6vw,16px)}}
       </style>
       </head><body>
         <div class="bracket">
@@ -459,18 +459,25 @@ export default function BracketTab({ battle, crews }) {
             if (savedBackground) applyBackground(savedBackground);
           } catch (e) {}
           const esc = (value) => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-          const matchHtml = (m) => {
+          const matchHtml = (m, round) => {
             const match = m || { team1:null, team2:null, winner:null };
+            const nameSize = (team) => {
+              if (!team) return 16;
+              const name = String(team.name || '');
+              const available = round === 1 ? 230 : round === 2 ? 180 : round === 3 ? 145 : 210;
+              return Math.max(7, Math.min(26, available / Math.max(name.length * 0.58, 1)));
+            };
             const row = (team, slot) => {
               const win = match.winner === slot;
               const los = match.winner && match.winner !== slot;
               const cls = win ? ' win' : los ? ' los' : (!team ? ' pending' : '');
-              return '<div class="team' + cls + '">' + (team ? esc(team.name) : 'À déterminer') + '</div>';
+              const size = nameSize(team).toFixed(1);
+              return '<div class="team' + cls + '" style="font-size:' + size + 'px">' + (team ? esc(team.name) : 'À déterminer') + '</div>';
             };
             return '<div class="match">' + row(match.team1,'team1') + row(match.team2,'team2') + '</div>';
           };
           const renderColumn = (id, data, round, matches) => {
-            document.getElementById(id).innerHTML = matches.map(m => matchHtml(data.bracket?.[round]?.[m])).join('');
+            document.getElementById(id).innerHTML = matches.map(m => matchHtml(data.bracket?.[round]?.[m], round)).join('');
           };
           const render = (data) => {
             renderColumn('leftR1', data, 1, [1,2,3,4]);
