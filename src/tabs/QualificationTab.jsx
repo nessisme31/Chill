@@ -198,7 +198,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
 
   /* ── Arena ── */
   .arena{display:flex;flex:1;min-height:0;overflow:hidden}
-  .side{flex:1;min-width:0;min-height:0;padding:1.8vh 2.2vw;display:flex;flex-direction:column;overflow:hidden}
+  .side{flex:1;min-width:0;min-height:0;padding:1.8vh 2.2vw;display:flex;flex-direction:column;overflow:hidden;--next-pad-y:.75vh;--next-font:clamp(10px,.86vw,16px);--next-gap:.45vh}
   .side-a{border-right:clamp(2px,.2vw,3px) solid #fff}
 
   /* ── Battle box — dimensionné pour tenir en 16/9 ── */
@@ -213,8 +213,8 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
 
   /* ── À suivre ── */
   .st{font-size:clamp(9px,.75vw,12px);font-weight:700;letter-spacing:clamp(1px,.2vw,3px);text-transform:uppercase;color:#fff;margin-bottom:.7vh;flex-shrink:0;text-align:center}
-  .sl{display:flex;flex-direction:column;gap:.3vh;overflow:hidden;flex:1;min-height:0}
-  .si-a,.si-b{border:clamp(1px,.12vw,2px) solid;padding:.42vh .7vw;font-size:clamp(8px,.75vw,14px);font-weight:700;text-transform:uppercase;letter-spacing:.2px;text-align:left;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sl{display:flex;flex-direction:column;gap:var(--next-gap);overflow:hidden;flex:1;min-height:0}
+  .si-a,.si-b{border:clamp(1px,.12vw,2px) solid;padding:var(--next-pad-y) .7vw;font-size:var(--next-font);font-weight:700;text-transform:uppercase;letter-spacing:.2px;text-align:left;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .remaining{flex-shrink:0;text-align:center;color:#fff;font-size:clamp(9px,.75vw,14px);font-weight:800;letter-spacing:.4px;margin-top:.7vh}
   .si-a{border-color:#fff;color:#fff}.si-b{border-color:#cc0000;color:#cc0000}
   .stk-a{color:#555;font-size:.85em}.stk-b{color:#8b0000;font-size:.85em}
@@ -267,6 +267,18 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
     const cur = pairs[idx];
     const upcoming = pairs.slice(idx + 1, idx + 14);
     const remaining = Math.max(0, pairs.length - (idx + 1 + upcoming.length));
+
+    // Les rectangles À SUIVRE reprennent une taille confortable quand il reste
+    // peu de battles et se resserrent uniquement lorsque les 13 lignes sont utilisées.
+    const upcomingCount = upcoming.length;
+    const density = upcomingCount <= 7
+      ? { padY: '1vh', font: 'clamp(11px,1vw,18px)', gap: '.58vh' }
+      : upcomingCount <= 10
+        ? { padY: '.88vh', font: 'clamp(10px,.94vw,17px)', gap: '.5vh' }
+        : { padY: '.75vh', font: 'clamp(10px,.86vw,16px)', gap: '.45vh' };
+    el.style.setProperty('--next-pad-y', density.padY);
+    el.style.setProperty('--next-font', density.font);
+    el.style.setProperty('--next-gap', density.gap);
 
     const rows = cur.map(t =>
       '<div class="brow ' + (isA?'brow-a':'brow-b') + '">' +
