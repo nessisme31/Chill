@@ -272,10 +272,10 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
     // peu de battles et se resserrent uniquement lorsque les 13 lignes sont utilisées.
     const upcomingCount = upcoming.length;
     const density = upcomingCount <= 7
-      ? { padY: '1vh', font: 'clamp(11px,1vw,18px)', gap: '.58vh' }
+      ? { padY: '1.08vh', font: 'clamp(11px,1.02vw,18px)', gap: '.64vh' }
       : upcomingCount <= 10
-        ? { padY: '.88vh', font: 'clamp(10px,.94vw,17px)', gap: '.5vh' }
-        : { padY: '.75vh', font: 'clamp(10px,.86vw,16px)', gap: '.45vh' };
+        ? { padY: '.95vh', font: 'clamp(10px,.98vw,17px)', gap: '.56vh' }
+        : { padY: '.84vh', font: 'clamp(10px,.9vw,16px)', gap: '.5vh' };
     el.style.setProperty('--next-pad-y', density.padY);
     el.style.setProperty('--next-font', density.font);
     el.style.setProperty('--next-gap', density.gap);
@@ -298,7 +298,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
     }
 
     const remainingLabel = remaining > 0
-      ? '<div class="remaining">' + remaining + ' battle' + (remaining > 1 ? 's' : '') + ' restant' + (remaining > 1 ? 's' : '') + '</div>'
+      ? '<div class="remaining">' + remaining + ' battle' + (remaining > 1 ? 's' : '') + ' suivant' + (remaining > 1 ? 's' : '') + '</div>'
       : '';
 
     el.innerHTML =
