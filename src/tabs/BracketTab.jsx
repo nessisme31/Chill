@@ -187,6 +187,38 @@ export default function BracketTab({ battle, crews }) {
     setBracket(newB)
   }
 
+  const randomizeBracket = async () => {
+    if (bracketLocked || top16.length === 0) return
+    if (!window.confirm('Mélanger aléatoirement les équipes du TOP 16 dans le bracket ?')) return
+
+    const shuffled = [...top16].sort(() => Math.random() - 0.5)
+    const newB = emptyBracket()
+    shuffled.forEach((team, index) => {
+      const match = Math.floor(index / 2) + 1
+      const slot = index % 2 === 0 ? 'team1' : 'team2'
+      if (newB[1]?.[match]) newB[1][match][slot] = team
+    })
+    setBracket(newB)
+    setSelecting(null)
+    setLocking(true)
+
+    await supabase.from('bracket_slots').delete().eq('battle_id', battle.id)
+    const inserts = shuffled.map((team, index) => ({
+      battle_id: battle.id,
+      round: 1,
+      match_number: Math.floor(index / 2) + 1,
+      position: index % 2 === 0 ? 1 : 2,
+      crew_id: team.isGuest ? null : team.id,
+      team_name: team.name,
+      sticker: team.sticker || null,
+      cypher: team.cypher || null,
+      is_guest: Boolean(team.isGuest),
+      is_winner: false,
+    }))
+    if (inserts.length) await supabase.from('bracket_slots').insert(inserts)
+    setLocking(false)
+  }
+
   const lockBracket = async () => {
     setLocking(true)
     await supabase.from('battles').update({ bracket_locked: true }).eq('id', battle.id)
@@ -586,11 +618,18 @@ ${champion?`<div style="text-align:center;margin-top:10px;padding:6px;background
               {allR1Filled ? 'Repositionnez si besoin, puis lancez.' : 'Cliquez sur les slots vides pour placer une équipe.'}
             </div>
           </div>
-          <button className="btn btn-white"
-            style={{ padding: '8px 20px', fontWeight: 800, opacity: allR1Filled ? 1 : 0.4 }}
-            disabled={!allR1Filled || locking} onClick={lockBracket}>
-            {locking ? '…' : '🚀 Lancer le battle'}
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button className="btn btn-ghost btn-sm"
+              style={{ padding: '8px 14px', color: 'var(--gold)', borderColor: 'var(--gold-dim)', opacity: top16.length ? 1 : 0.4 }}
+              disabled={!top16.length || locking} onClick={randomizeBracket}>
+              {locking ? '…' : '🎲 Aléatoire'}
+            </button>
+            <button className="btn btn-white"
+              style={{ padding: '8px 20px', fontWeight: 800, opacity: allR1Filled ? 1 : 0.4 }}
+              disabled={!allR1Filled || locking} onClick={lockBracket}>
+              {locking ? '…' : '🚀 Lancer le battle'}
+            </button>
+          </div>
         </div>
       )}
 
