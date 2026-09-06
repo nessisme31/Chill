@@ -498,10 +498,15 @@ export default function BracketTab({ battle, crews }) {
   const printBracket = () => {
     const S = 30, M = 61, G1 = 8, G2 = 77
     const PT2 = Math.round((M + G1) / 2), PT3 = Math.round(PT2 + (M + G2) / 2)
-    const CW = 120, CN = 10, CP = CW + CN * 2
-    const row = (t, w, l) => !t
-      ? `<div class="slot"><span class="nm" style="color:#aaa">—</span></div>`
-      : `<div class="slot${w?' win':l?' los':''}"><span class="stk">${t.sticker||''}</span><span class="nm">${t.name}${t.total!=null?` <span class="pts">${t.total}p</span>`:''}</span>${w?'<span class="ck">✓</span>':''}</div>`
+    const CW = 145, CN = 10, CP = CW + CN * 2
+    const row = (t, w, l) => {
+      if (!t) return `<div class="slot"><span class="nm" style="color:#aaa">—</span></div>`
+      const name = String(t.name || '')
+      const hasPoints = t.total != null
+      const availableWidth = CW - 10 - 20 - (hasPoints ? 27 : 0)
+      const nameSize = Math.max(4.5, Math.min(9, availableWidth / Math.max(name.length * 0.56, 1)))
+      return `<div class="slot${w?' win':l?' los':''}"><span class="stk">${t.sticker||''}</span><span class="nm" style="font-size:${nameSize.toFixed(1)}px">${name}</span>${hasPoints?`<span class="pts">${t.total}p</span>`:''}${w?'<span class="ck">✓</span>':''}</div>`
+    }
     const card = (r, m, s, f=false) => {
       const mm = bracket[r]?.[m]; if(!mm) return ''
       const t1W=mm.winner==='team1',t2W=mm.winner==='team2'
@@ -527,7 +532,7 @@ export default function BracketTab({ battle, crews }) {
 .mc.fn{border:2px solid goldenrod}
 .slot{height:${S}px;display:flex;align-items:center;padding:0 5px;gap:3px;font-size:9px}
 .slot.win{background:#e8f5e9}.slot.los{opacity:.3;text-decoration:line-through}
-.nm{flex:1;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-transform:uppercase}
+.nm{flex:1;min-width:0;font-weight:700;overflow:visible;white-space:nowrap;text-overflow:clip;text-transform:uppercase}
 .pts{font-size:8px;color:#999;font-weight:400}.stk{font-size:8px;font-weight:800;color:#777;min-width:20px}
 .ck{color:#2e7d32;font-weight:900}.dv{height:1px;background:#e0e0e0}
 .ch{position:absolute;height:1px;background:#999}.cv{position:absolute;width:1px;background:#999}
