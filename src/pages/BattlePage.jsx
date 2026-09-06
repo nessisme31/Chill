@@ -39,6 +39,11 @@ export default function BattlePage({ battle, onPause, onConfig, onClose }) {
     setLoading(false)
   }
 
+  const refreshCrews = async () => {
+    const { data } = await supabase.from('crews').select('*').eq('battle_id', battle.id).order('created_at')
+    setCrews(data || [])
+  }
+
   const handlePause = async () => {
     setPausing(true)
     await supabase.from('battles').update({ status: 'paused' }).eq('id', battle.id)
@@ -59,7 +64,7 @@ export default function BattlePage({ battle, onPause, onConfig, onClose }) {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text3)' }}>Chargement…</div>
   )
 
-  const sharedProps = { battle, judges, djs, speakers, crews, setCrews }
+  const sharedProps = { battle, judges, djs, speakers, crews, setCrews, refreshCrews }
 
   return (
     <div className="page">
