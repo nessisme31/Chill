@@ -416,14 +416,14 @@ export default function BracketTab({ battle, crews }) {
         *{box-sizing:border-box}
         html,body{width:100vw;height:100vh;margin:0;background:#050505;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
         body{padding:0;background-attachment:fixed;background-size:cover;background-position:center}
-        .bracket{width:100vw;height:100vh;min-height:0;padding:clamp(8px,1.4vw,26px);display:grid;grid-template-columns:1.35fr 1fr .85fr .85fr .85fr 1fr 1.35fr;gap:clamp(8px,1.2vw,24px);align-items:stretch;overflow:hidden}
+        .bracket{width:100vw;height:100vh;min-height:0;padding:clamp(8px,1.4vw,26px);display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:clamp(8px,1.2vw,24px);align-items:stretch;overflow:hidden}
         .round{display:flex;flex-direction:column;justify-content:space-around;gap:clamp(8px,1vh,18px);min-width:0;min-height:0}
         .round>div[id]{display:flex;flex:1;min-height:0;flex-direction:column;justify-content:space-around;gap:clamp(8px,1vh,18px)}
         .round.left{text-align:left}.round.right{text-align:right}
         .round.final{justify-content:center}
-        .match{background:#111;border:1px solid #333;border-radius:7px;overflow:visible;box-shadow:0 4px 18px rgba(0,0,0,.28)}
+        .match{width:100%;background:#111;border:1px solid #333;border-radius:7px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.28)}
         .final .match{border-color:#c79617;box-shadow:0 0 18px rgba(212,160,23,.2)}
-        .team{min-height:clamp(34px,5.2vh,68px);display:flex;align-items:center;padding:6px 10px;font-size:clamp(8px,1.2vw,26px);font-weight:800;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:visible;text-overflow:clip}
+        .team{min-height:clamp(34px,5.2vh,68px);display:flex;align-items:center;padding:6px 10px;font-size:clamp(8px,1.2vw,26px);font-weight:800;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:clip}
         .team + .team{border-top:1px solid #333}
         .team.pending{color:#555;font-weight:600;text-transform:none}
         .team.win{background:#3a2a05;color:#f1c84b}
@@ -459,34 +459,37 @@ export default function BracketTab({ battle, crews }) {
             if (savedBackground) applyBackground(savedBackground);
           } catch (e) {}
           const esc = (value) => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-          const matchHtml = (m, round) => {
+          const matchHtml = (m, fontSize) => {
             const match = m || { team1:null, team2:null, winner:null };
-            const nameSize = (team) => {
-              if (!team) return 16;
-              const name = String(team.name || '');
-              const available = round === 1 ? 230 : round === 2 ? 180 : round === 3 ? 145 : 210;
-              return Math.max(7, Math.min(18, available / Math.max(name.length * 0.58, 1)));
-            };
             const row = (team, slot) => {
               const win = match.winner === slot;
               const los = match.winner && match.winner !== slot;
               const cls = win ? ' win' : los ? ' los' : (!team ? ' pending' : '');
-              const size = nameSize(team).toFixed(1);
-              return '<div class="team' + cls + '" style="font-size:' + size + 'px">' + (team ? esc(team.name) : 'À déterminer') + '</div>';
+              return '<div class="team' + cls + '" style="font-size:' + fontSize.toFixed(1) + 'px">' + (team ? esc(team.name) : 'À déterminer') + '</div>';
             };
             return '<div class="match">' + row(match.team1,'team1') + row(match.team2,'team2') + '</div>';
           };
-          const renderColumn = (id, data, round, matches) => {
-            document.getElementById(id).innerHTML = matches.map(m => matchHtml(data.bracket?.[round]?.[m], round)).join('');
+          const renderColumn = (id, data, round, matches, fontSize) => {
+            document.getElementById(id).innerHTML = matches.map(m => matchHtml(data.bracket?.[round]?.[m], fontSize)).join('');
           };
           const render = (data) => {
-            renderColumn('leftR1', data, 1, [1,2,3,4]);
-            renderColumn('leftR2', data, 2, [1,2]);
-            renderColumn('leftR3', data, 3, [1]);
-            renderColumn('final', data, 4, [1]);
-            renderColumn('rightR3', data, 3, [2]);
-            renderColumn('rightR2', data, 2, [3,4]);
-            renderColumn('rightR1', data, 1, [5,6,7,8]);
+            const allTeams = Object.values(data.bracket || {})
+              .flatMap(round => Object.values(round || {}))
+              .flatMap(match => [match?.team1, match?.team2])
+              .filter(Boolean);
+            const longestName = Math.max(1, ...allTeams.map(team => String(team.name || '').length));
+            const padding = Math.max(16, window.innerWidth * 0.028);
+            const gap = Math.max(8, window.innerWidth * 0.012);
+            const boxWidth = (window.innerWidth - (padding * 2) - (gap * 6)) / 7;
+            const usableWidth = Math.max(44, boxWidth - 22);
+            const fontSize = Math.max(7, Math.min(18, usableWidth / Math.max(longestName * 0.58, 1)));
+            renderColumn('leftR1', data, 1, [1,2,3,4], fontSize);
+            renderColumn('leftR2', data, 2, [1,2], fontSize);
+            renderColumn('leftR3', data, 3, [1], fontSize);
+            renderColumn('final', data, 4, [1], fontSize);
+            renderColumn('rightR3', data, 3, [2], fontSize);
+            renderColumn('rightR2', data, 2, [3,4], fontSize);
+            renderColumn('rightR1', data, 1, [5,6,7,8], fontSize);
           };
           render(initial);
           channel.onmessage = (event) => {
