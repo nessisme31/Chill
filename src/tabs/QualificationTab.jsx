@@ -83,17 +83,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
     }
   }
 
-  const exportDanseurs = () => {
-    const rows = [['Blasé 01', 'Blasé 02', 'Crew']]
-    crews.forEach(c => rows.push([c.member1 || '', c.member2 || '', c.name || '']))
-    const csv = '\uFEFF' + rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = `${battle.name.replace(/\s+/g, '_')}_danseurs.csv`; a.click()
-    URL.revokeObjectURL(url)
-  }
-
   const printSheets = (cypher) => {
     const filtered = sortByCypher(crews, cypher)
     const battles = makePairs(filtered)
@@ -168,6 +157,78 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
       <p class="instruction">Noter les danseur·euses de chaque équipe séparément sur 5.</p>
       ${battleCards ? `<div class="battle-grid">${battleCards}</div>` : '<div class="empty">Aucune équipe inscrite dans le Cercle ' + cypher + '.</div>'}
     </body></html>`)
+    w.document.close()
+    setTimeout(() => w.print(), 250)
+  }
+
+  const printSpeakerSheets = () => {
+    const safe = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+
+    const renderCircle = (cypher) => {
+      const filtered = sortByCypher(crews, cypher)
+      const isB = cypher === 'B'
+      const rows = filtered.map((crew, index) => `<tr>
+        <td class="num">${index + 1}</td>
+        <td class="sticker ${isB ? 'sticker-b' : 'sticker-a'}">${safe(crew.sticker)}</td>
+        <td class="crew">${safe(crew.name)}</td>
+        <td>${safe(crew.member1 || '—')}</td>
+        <td>${safe(crew.member2 || '—')}</td>
+      </tr>`).join('')
+
+      return `<section class="circle-page ${isB ? 'circle-b' : 'circle-a'}">
+        <div class="page-head">
+          <div>
+            <h1>${safe(battle.name)}</h1>
+            <div class="subtitle">Feuille speaker — qualifications</div>
+          </div>
+          <div class="date">${new Date().toLocaleDateString('fr-FR')}</div>
+        </div>
+        <div class="circle-title">CERCLE ${cypher}</div>
+        <div class="count">${filtered.length} équipe(s)</div>
+        ${filtered.length ? `<table>
+          <thead><tr><th>N°</th><th>Sticker</th><th>Équipe</th><th>Danseur·euse 1</th><th>Danseur·euse 2</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>` : '<div class="empty">Aucune équipe inscrite dans ce cercle.</div>'}
+      </section>`
+    }
+
+    const w = window.open('', '_blank')
+    if (!w) { alert('Autorisez les popups pour ouvrir la feuille speaker'); return }
+    w.document.write(`<!DOCTYPE html><html lang="fr"><head>
+      <meta charset="UTF-8">
+      <title>${safe(battle.name)} — Feuille speaker</title>
+      <style>
+        *{box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0;background:#fff}
+        .circle-page{min-height:277mm;page-break-after:always}
+        .circle-page:last-child{page-break-after:auto}
+        .page-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:5px;margin-bottom:10px}
+        h1{font-size:19px;margin:0;text-transform:uppercase;letter-spacing:.3px}
+        .subtitle{font-size:10px;color:#666;margin-top:3px;text-transform:uppercase;letter-spacing:1px}
+        .date{font-size:10px;color:#666}
+        .circle-title{display:inline-block;color:#fff;background:#111;padding:6px 14px;font-size:16px;font-weight:900;letter-spacing:2px;margin-bottom:3px}
+        .count{font-size:10px;color:#666;margin-bottom:8px}
+        table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10px}
+        th,td{border:1px solid #aaa;padding:6px 5px;vertical-align:middle;text-align:left;overflow-wrap:anywhere}
+        th{background:#111;color:#fff;font-size:9px;text-transform:uppercase;letter-spacing:.4px}
+        tbody tr:nth-child(even){background:#f3f3f3}
+        .num{width:8%;text-align:center;color:#666;font-weight:700}
+        .sticker{width:13%;text-align:center;font-weight:900}
+        .sticker-a{color:#111}.sticker-b{color:#c00}
+        .crew{width:29%;font-weight:900;text-transform:uppercase}
+        .circle-b .page-head{border-bottom-color:#c00}
+        .circle-b .circle-title,.circle-b th{background:#c00}
+        .empty{border:1px dashed #aaa;padding:18px;text-align:center;color:#666;font-size:11px}
+        @page{size:A4 portrait;margin:10mm}
+        @media print{body{padding:0}.circle-page{min-height:277mm}}
+        @media screen{body{max-width:800px;margin:0 auto;padding:18px;background:#fafafa}.circle-page{background:#fff;margin-bottom:18px;padding:18px;box-shadow:0 1px 8px rgba(0,0,0,.12)}}
+      </style>
+    </head><body>${renderCircle('A')}${renderCircle('B')}</body></html>`)
     w.document.close()
     setTimeout(() => w.print(), 250)
   }
@@ -411,7 +472,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
         <div className="flex" style={{ gap: 8 }}>
           <button className="btn btn-ghost btn-sm" onClick={() => refreshCrews?.()}>↻ Actualiser les équipes</button>
           <button className="btn btn-ghost btn-sm" onClick={openDisplayMode}>🖥 Affichage</button>
-          <button className="btn btn-ghost btn-sm" onClick={exportDanseurs}>⬇ CSV</button>
+          <button className="btn btn-ghost btn-sm" onClick={printSpeakerSheets}>🖨 Impression speaker</button>
           <button className="btn btn-ghost btn-sm" onClick={() => printSheets('A')}>🖨 Imprimer Cercle A</button>
           <button className="btn btn-ghost btn-sm" onClick={() => printSheets('B')}>🖨 Imprimer Cercle B</button>
         </div>
