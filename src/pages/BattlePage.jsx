@@ -22,8 +22,37 @@ export default function BattlePage({ battle, onPause, onConfig, onClose }) {
   const [pausing,  setPausing]  = useState(false)
   const [closing,  setClosing]  = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   useEffect(() => { loadData() }, [battle.id])
+
+  useEffect(() => {
+    const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement || document.webkitFullscreenElement))
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange)
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange)
+    }
+  }, [])
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) await document.exitFullscreen()
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen()
+      } else if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen()
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen()
+      } else {
+        alert('Le plein écran n’est pas pris en charge par ce navigateur.')
+      }
+    } catch (error) {
+      console.warn('Impossible d’activer le plein écran', error)
+      alert('Chrome a bloqué le plein écran. Appuyez à nouveau sur le bouton pour réessayer.')
+    }
+  }
 
   const changeTab = (t) => { setTab(t); localStorage.setItem(`citc_tab_${battle.id}`, t) }
 
@@ -95,6 +124,9 @@ export default function BattlePage({ battle, onPause, onConfig, onClose }) {
           </div>
         </div>
         <div className="flex" style={{ gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={toggleFullscreen} title="Masquer la barre d’adresse et les onglets de Chrome">
+            {isFullscreen ? '⛶ Quitter plein écran' : '⛶ Plein écran'}
+          </button>
           <button className="btn btn-ghost btn-sm" onClick={onConfig}>⚙ Configuration</button>
           <button className="btn btn-ghost btn-sm" style={{ borderColor: 'var(--gold-dim)', color: 'var(--gold)' }} onClick={handlePause} disabled={pausing}>
             {pausing ? '…' : '⏸ Pause'}
