@@ -569,7 +569,9 @@ export default function BracketTab({ battle, crews }) {
       `<div style="width:${CP}px;flex-shrink:0;padding:0 ${CN}px">${pair(1,5,6,'right',G1)}<div style="height:${G1}px"></div>${pair(1,7,8,'right',G1)}</div>`,
     ].join('')
     const html = `<!DOCTYPE html><html><head><title>${battle.name} — Bracket</title>
-<style>@page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0}
+<style>@page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;width:100%;text-align:center}
+.bracket-print{width:100%;display:flex;justify-content:center;overflow:visible}
+.bracket-content{display:flex;align-items:flex-start;width:max-content}
 .mc{background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;width:${CW}px}
 .mc.fn{border:2px solid goldenrod}
 .slot{height:${S}px;display:flex;align-items:center;padding:0 5px;gap:3px;font-size:9px}
@@ -582,7 +584,7 @@ export default function BracketTab({ battle, crews }) {
 </head><body>
 <div style="text-align:center;margin-bottom:8px"><div style="font-size:14px;font-weight:900;text-transform:uppercase">${battle.name}</div>
 <div style="font-size:9px;color:#777">TOP 16 — ${new Date().toLocaleDateString('fr-FR')}</div></div>
-<div style="display:flex;align-items:flex-start">${cols}</div>
+<div class="bracket-print"><div class="bracket-content">${cols}</div></div>
 ${champion?`<div style="text-align:center;margin-top:10px;padding:6px;background:#fffbea;border:2px solid gold;border-radius:4px;font-weight:900;font-size:12px;text-transform:uppercase">🏆 ${champion.name}</div>`:''}
 </body></html>`
     const w = window.open('', '_blank'); if (!w) { alert('Autorisez les popups'); return }
