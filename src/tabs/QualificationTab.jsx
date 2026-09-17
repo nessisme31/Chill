@@ -173,7 +173,6 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
       const filtered = sortByCypher(crews, cypher)
       const isB = cypher === 'B'
       const rows = filtered.map((crew, index) => `<tr>
-        <td class="num">${index + 1}</td>
         <td class="sticker ${isB ? 'sticker-b' : 'sticker-a'}">${safe(crew.sticker)}</td>
         <td class="crew">${safe(crew.name)}</td>
         <td>${safe(crew.member1 || '—')}</td>
@@ -191,7 +190,7 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
         <div class="circle-title">CERCLE ${cypher}</div>
         <div class="count">${filtered.length} équipe(s)</div>
         ${filtered.length ? `<table>
-          <thead><tr><th>N°</th><th>Sticker</th><th>Équipe</th><th>Danseur·euse 1</th><th>Danseur·euse 2</th></tr></thead>
+          <thead><tr><th>Sticker</th><th>Équipe</th><th>Danseur·euse 1</th><th>Danseur·euse 2</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>` : '<div class="empty">Aucune équipe inscrite dans ce cercle.</div>'}
       </section>`
@@ -217,10 +216,9 @@ export default function QualificationTab({ battle, judges, djs, speakers, crews,
         th,td{border:1px solid #aaa;padding:6px 5px;vertical-align:middle;text-align:left;overflow-wrap:anywhere}
         th{background:#111;color:#fff;font-size:9px;text-transform:uppercase;letter-spacing:.4px}
         tbody tr:nth-child(even){background:#f3f3f3}
-        .num{width:8%;text-align:center;color:#666;font-weight:700}
-        .sticker{width:13%;text-align:center;font-weight:900}
+        .sticker{width:18%;text-align:center;font-weight:900}
         .sticker-a{color:#111}.sticker-b{color:#c00}
-        .crew{width:29%;font-weight:900;text-transform:uppercase}
+        .crew{width:32%;font-weight:900;text-transform:uppercase}
         .circle-b .page-head{border-bottom-color:#c00}
         .circle-b .circle-title,.circle-b th{background:#c00}
         .empty{border:1px dashed #aaa;padding:18px;text-align:center;color:#666;font-size:11px}
