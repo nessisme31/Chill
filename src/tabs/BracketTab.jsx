@@ -488,7 +488,7 @@ export default function BracketTab({ battle, crews }) {
           const backgroundKey = ${JSON.stringify(`citc_bracket_background_${battle.id}`)};
           const applyBackground = (dataUrl) => {
             document.body.style.backgroundImage = dataUrl
-              ? 'linear-gradient(rgba(0,0,0,.58),rgba(0,0,0,.58)),url("' + dataUrl + '")'
+              ? 'url("' + dataUrl + '")'
               : '';
             document.body.style.backgroundSize = dataUrl ? 'cover' : '';
             document.body.style.backgroundPosition = dataUrl ? 'center' : '';
