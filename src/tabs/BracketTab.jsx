@@ -52,7 +52,7 @@ export default function BracketTab({ battle, crews }) {
   const displayChannelRef = useRef(null)
   const backgroundInputRef = useRef(null)
 
-  useEffect(() => { loadData() }, [battle.id])
+  useEffect(() => { loadData() }, [battle.id, crews])
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth)
@@ -64,7 +64,14 @@ export default function BracketTab({ battle, crews }) {
     setLoading(true)
     const { data: bData } = await supabase.from('battles')
       .select('top16_validated, bracket_locked').eq('id', battle.id).single()
-    if (!bData?.top16_validated) { setLoading(false); return }
+    if (!bData?.top16_validated) {
+      setValidated(false)
+      setBracketLocked(false)
+      setTop16([])
+      setBracket(emptyBracket())
+      setLoading(false)
+      return
+    }
     setValidated(true)
     if (bData?.bracket_locked) setBracketLocked(true)
 
@@ -87,8 +94,8 @@ export default function BracketTab({ battle, crews }) {
 
     const { data: slots } = await supabase.from('bracket_slots')
       .select('*').eq('battle_id', battle.id)
+    const newB = emptyBracket()
     if (slots?.length) {
-      const newB = emptyBracket()
       slots.forEach(s => {
         if (!newB[s.round]?.[s.match_number]) return
         const slotKey = s.position === 1 ? 'team1' : 'team2'
@@ -99,8 +106,10 @@ export default function BracketTab({ battle, crews }) {
           total: s.crew_id ? (totalsMap[s.crew_id] ?? null) : null,
         }
       })
-      setBracket(newB)
     }
+    // Toujours remplacer l’état local, y compris quand tous les slots ont
+    // été supprimés avec une équipe.
+    setBracket(newB)
     setLoading(false)
   }
 
