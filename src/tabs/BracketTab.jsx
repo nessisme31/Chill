@@ -488,7 +488,7 @@ export default function BracketTab({ battle, crews }) {
           <div class="round left"><div class="round-label">1/8 finale</div><div id="leftR1"></div></div>
           <div class="round left"><div class="round-label">Quarts</div><div id="leftR2"></div></div>
           <div class="round left"><div class="round-label">Demi-finale</div><div id="leftR3"></div></div>
-          <div class="round final"><div class="round-label">Finale</div><div id="final"></div><div id="champion"></div></div>
+          <div class="round final"><div class="round-label">Finale</div><div id="final"></div><div id="champion" class="champion-card"><div class="champion-label">CHAMPION</div><div id="championName" class="champion-name">À déterminer</div></div></div>
           <div class="round right"><div class="round-label">Demi-finale</div><div id="rightR3"></div></div>
           <div class="round right"><div class="round-label">Quarts</div><div id="rightR2"></div></div>
           <div class="round right"><div class="round-label">1/8 finale</div><div id="rightR1"></div></div>
@@ -526,11 +526,9 @@ export default function BracketTab({ battle, crews }) {
           };
           const renderChampion = (data, fontSize) => {
             const championName = data.champion?.name || 'À déterminer';
-            document.getElementById('champion').innerHTML =
-              '<div class="champion-card">' +
-                '<div class="champion-label">CHAMPION</div>' +
-                '<div class="champion-name" style="font-size:' + fontSize.toFixed(1) + 'px">' + esc(championName) + '</div>' +
-              '</div>';
+            const championNameEl = document.getElementById('championName');
+            championNameEl.textContent = championName;
+            championNameEl.style.fontSize = fontSize.toFixed(1) + 'px';
           };
           const render = (data) => {
             const allTeams = Object.values(data.bracket || {})
