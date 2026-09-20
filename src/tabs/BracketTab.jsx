@@ -300,7 +300,7 @@ export default function BracketTab({ battle, crews }) {
           background: isWinner ? '#122a12' : isR1 ? '#202020' : '#141414',
           border: `1px solid ${isWinner ? '#1e4a1e' : isR1 ? '#363636' : '#222'}`,
           borderRadius: 2, overflow: 'hidden',
-          opacity: isLoser ? 0.22 : 1,
+          opacity: isLoser ? 0.8 : 1,
           cursor: canDeclare ? 'pointer' : canPlace ? 'pointer' : 'default',
         }}
         onClick={
@@ -471,15 +471,15 @@ export default function BracketTab({ battle, crews }) {
         .round.final #final{display:flex;flex-direction:column;justify-content:center;width:100%}
         .round.final #champion{display:block !important;width:100%;flex:none !important}
         .match{width:100%;background:#111;border:1px solid #333;border-radius:7px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.28)}
-        .champion-card{width:100%;margin-top:clamp(18px,2.5vh,36px);border:1px solid #c79617;border-radius:7px;overflow:hidden;box-shadow:0 0 18px rgba(212,160,23,.2)}
-        .champion-label{padding:clamp(7px,1vh,14px) 10px;background:#4b3505;color:#f1c84b;font-weight:900;font-size:clamp(9px,1vw,18px);letter-spacing:.04em;text-transform:uppercase;text-align:center}
-        .champion-name{padding:clamp(8px,1.2vh,16px) 10px;background:#616161;color:#fff;font-weight:900;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:clip;text-align:center}
+        .champion-card{width:100%;margin-top:clamp(18px,2.5vh,36px);border:2px solid #f1c84b;border-radius:7px;overflow:hidden;background:#c79617;box-shadow:0 0 22px rgba(212,160,23,.5)}
+        .champion-label{padding:clamp(7px,1vh,14px) 10px;background:#c79617;color:#1a1200;font-weight:900;font-size:clamp(9px,1vw,18px);letter-spacing:.04em;text-transform:uppercase;text-align:center}
+        .champion-name{padding:clamp(8px,1.2vh,16px) 10px;background:#c79617;color:#1a1200;font-weight:900;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:clip;text-align:center}
         .final .match{border-color:#c79617;box-shadow:0 0 18px rgba(212,160,23,.2)}
         .team{min-height:clamp(34px,5.2vh,68px);display:flex;align-items:center;padding:6px 10px;font-size:clamp(8px,1.2vw,26px);font-weight:800;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:clip}
         .team + .team{border-top:1px solid #333}
         .team.pending{color:#555;font-weight:600;text-transform:none}
         .team.win{background:#3a2a05;color:#f1c84b}
-        .team.los{background:#616161;color:#f0f0f0;opacity:1}
+        .team.los{background:#616161;color:#f0f0f0;opacity:.8}
         .round-label{display:none}
         @media (max-width:900px){.bracket{grid-template-columns:repeat(7,minmax(120px,1fr));overflow-x:hidden}.team{font-size:clamp(8px,1.6vw,16px)}}
       </style>
@@ -604,7 +604,7 @@ export default function BracketTab({ battle, crews }) {
 .mc{background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;width:${CW}px}
 .mc.fn{border:2px solid goldenrod}
 .slot{height:${S}px;display:flex;align-items:center;padding:0 5px;gap:3px;font-size:9px}
-.slot.win{background:#e8f5e9}.slot.los{opacity:.3;text-decoration:line-through}
+.slot.win{background:#e8f5e9}.slot.los{opacity:.8;text-decoration:none}
 .nm{flex:1;min-width:0;font-weight:700;overflow:visible;white-space:nowrap;text-overflow:clip;text-transform:uppercase}
 .pts{font-size:8px;color:#999;font-weight:400}.stk{font-size:8px;font-weight:800;color:#777;min-width:20px}
 .ck{color:#2e7d32;font-weight:900}.dv{height:1px;background:#e0e0e0}
@@ -673,12 +673,12 @@ ${champion?`<div style="text-align:center;margin-top:10px;padding:6px;background
       {/* ── Champion ── */}
       {champion && (
         <div style={{
-          background: 'linear-gradient(135deg,#2d1800,#1a1200)',
+          background: 'var(--gold)',
           border: '1px solid var(--gold)', borderRadius: 8,
           padding: '10px 20px', marginBottom: 10, textAlign: 'center',
         }}>
-          <div style={{ fontSize: 9, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 4 }}>🏆 Champion</div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--gold)', textTransform: 'uppercase' }}>{champion.name}</div>
+          <div style={{ fontSize: 9, letterSpacing: '2px', textTransform: 'uppercase', color: '#1a1200', marginBottom: 4 }}>🏆 Champion</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#1a1200', textTransform: 'uppercase' }}>{champion.name}</div>
         </div>
       )}
 
