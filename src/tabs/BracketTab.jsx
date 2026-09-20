@@ -73,7 +73,7 @@ export default function BracketTab({ battle, crews }) {
       return
     }
     setValidated(true)
-    if (bData?.bracket_locked) setBracketLocked(true)
+    setBracketLocked(Boolean(bData?.bracket_locked))
 
     const [{ data: scoreRows }, { data: guests }] = await Promise.all([
       supabase.from('top16_scores').select('crew_id, score').eq('battle_id', battle.id),
@@ -99,12 +99,17 @@ export default function BracketTab({ battle, crews }) {
       slots.forEach(s => {
         if (!newB[s.round]?.[s.match_number]) return
         const slotKey = s.position === 1 ? 'team1' : 'team2'
-        if (s.is_winner) newB[s.round][s.match_number].winner = slotKey
-        else newB[s.round][s.match_number][slotKey] = {
+        const team = {
           id: s.crew_id || ('g_'+s.id), name: s.team_name,
           sticker: s.sticker, cypher: s.cypher, isGuest: s.is_guest,
           total: s.crew_id ? (totalsMap[s.crew_id] ?? null) : null,
         }
+
+        // Toujours restaurer l'équipe dans son emplacement, y compris
+        // lorsqu'elle a été déclarée gagnante. Sinon, après réouverture
+        // du battle, le nom est remplacé par un tiret.
+        newB[s.round][s.match_number][slotKey] = team
+        if (s.is_winner) newB[s.round][s.match_number].winner = slotKey
       })
     }
     // Toujours remplacer l’état local, y compris quand tous les slots ont
