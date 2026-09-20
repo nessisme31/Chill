@@ -467,7 +467,13 @@ export default function BracketTab({ battle, crews }) {
         .round>div[id]{display:flex;flex:1;min-height:0;flex-direction:column;justify-content:space-around;gap:clamp(8px,1vh,18px)}
         .round.left{text-align:left}.round.right{text-align:right}
         .round.final{justify-content:center}
+        .round.final>div[id]{flex:0 0 auto;min-height:0}
+        .round.final #final{display:flex;flex-direction:column;justify-content:center;width:100%}
+        .round.final #champion{display:block !important;width:100%;flex:none !important}
         .match{width:100%;background:#111;border:1px solid #333;border-radius:7px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.28)}
+        .champion-card{width:100%;margin-top:clamp(18px,2.5vh,36px);border:1px solid #c79617;border-radius:7px;overflow:hidden;box-shadow:0 0 18px rgba(212,160,23,.2)}
+        .champion-label{padding:clamp(7px,1vh,14px) 10px;background:#4b3505;color:#f1c84b;font-weight:900;font-size:clamp(9px,1vw,18px);letter-spacing:.04em;text-transform:uppercase;text-align:center}
+        .champion-name{padding:clamp(8px,1.2vh,16px) 10px;background:#616161;color:#fff;font-weight:900;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:clip;text-align:center}
         .final .match{border-color:#c79617;box-shadow:0 0 18px rgba(212,160,23,.2)}
         .team{min-height:clamp(34px,5.2vh,68px);display:flex;align-items:center;padding:6px 10px;font-size:clamp(8px,1.2vw,26px);font-weight:800;text-transform:uppercase;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:clip}
         .team + .team{border-top:1px solid #333}
@@ -482,7 +488,7 @@ export default function BracketTab({ battle, crews }) {
           <div class="round left"><div class="round-label">1/8 finale</div><div id="leftR1"></div></div>
           <div class="round left"><div class="round-label">Quarts</div><div id="leftR2"></div></div>
           <div class="round left"><div class="round-label">Demi-finale</div><div id="leftR3"></div></div>
-          <div class="round final"><div class="round-label">Finale</div><div id="final"></div></div>
+          <div class="round final"><div class="round-label">Finale</div><div id="final"></div><div id="champion"></div></div>
           <div class="round right"><div class="round-label">Demi-finale</div><div id="rightR3"></div></div>
           <div class="round right"><div class="round-label">Quarts</div><div id="rightR2"></div></div>
           <div class="round right"><div class="round-label">1/8 finale</div><div id="rightR1"></div></div>
@@ -518,12 +524,22 @@ export default function BracketTab({ battle, crews }) {
           const renderColumn = (id, data, round, matches, fontSize) => {
             document.getElementById(id).innerHTML = matches.map(m => matchHtml(data.bracket?.[round]?.[m], fontSize)).join('');
           };
+          const renderChampion = (data, fontSize) => {
+            const championName = data.champion?.name || 'À déterminer';
+            document.getElementById('champion').innerHTML =
+              '<div class="champion-card">' +
+                '<div class="champion-label">CHAMPION</div>' +
+                '<div class="champion-name" style="font-size:' + fontSize.toFixed(1) + 'px">' + esc(championName) + '</div>' +
+              '</div>';
+          };
           const render = (data) => {
             const allTeams = Object.values(data.bracket || {})
               .flatMap(round => Object.values(round || {}))
               .flatMap(match => [match?.team1, match?.team2])
               .filter(Boolean);
-            const longestName = Math.max(1, ...allTeams.map(team => String(team.name || '').length));
+            const allNames = allTeams.map(team => String(team.name || ''));
+            if (data.champion?.name) allNames.push(String(data.champion.name));
+            const longestName = Math.max(1, ...allNames.map(name => name.length));
             const padding = Math.max(16, window.innerWidth * 0.028);
             const gap = Math.max(8, window.innerWidth * 0.012);
             const boxWidth = (window.innerWidth - (padding * 2) - (gap * 6)) / 7;
@@ -533,6 +549,7 @@ export default function BracketTab({ battle, crews }) {
             renderColumn('leftR2', data, 2, [1,2], fontSize);
             renderColumn('leftR3', data, 3, [1], fontSize);
             renderColumn('final', data, 4, [1], fontSize);
+            renderChampion(data, fontSize);
             renderColumn('rightR3', data, 3, [2], fontSize);
             renderColumn('rightR2', data, 2, [3,4], fontSize);
             renderColumn('rightR1', data, 1, [5,6,7,8], fontSize);
